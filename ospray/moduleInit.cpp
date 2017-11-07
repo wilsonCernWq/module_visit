@@ -16,10 +16,9 @@
 
 /*! \file ospray/moduleInit \brief Defines the module initialization callback */
 
-#include "VisItModuleCommon.h"
-#include "render/VisItDistributedRaycast.h"
-#include "volume/VisItSharedStructuredVolume.h"
 #include "ospcommon/utility/getEnvVar.h"
+#include "VisItModuleCommon.h"
+#include "volume/VisItSharedStructuredVolume.h"
 
 /*! _everything_ in the ospray core universe should _always_ be in the
   'ospray' namespace. */

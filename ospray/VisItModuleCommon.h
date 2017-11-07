@@ -25,40 +25,6 @@
 
 namespace ospray {
   namespace visit {
-    //
-    // this is a place to define all global flags that might be helpful
-    // throughout the program
-    //
-    //! tile type for MPI renderer
-    struct VisItTile {
-      // basic info
-      int region[4];
-      int fbSize[2];
-      float minDepth;
-      float maxDepth;
-      // 'red'   component in float.
-      std::vector<float> r;
-      // 'green' component in float.
-      std::vector<float> g;
-      // 'blue'  component in float.
-      std::vector<float> b;
-      // 'alpha' component in float.
-      std::vector<float> a;
-      // constructor
-      virtual ~VisItTile() = default;
-      VisItTile() {
-	region[0] = region[1] = region[2] = region[3] = 0;
-	fbSize[0] = fbSize[1] = 0;
-	minDepth = std::numeric_limits<float>::max();
-	maxDepth = std::numeric_limits<float>::min();
-      };
-    };
-    typedef std::vector<VisItTile*> VisItTileArray;
-    struct VisItTileRetriever 
-    {
-      virtual void operator()(const VisItTileArray& list) = 0;
-    };
-    //
     //! this is the verbose flag, which is used in VisIt also
     extern bool verbose;
     inline bool CheckVerbose() { return verbose; }

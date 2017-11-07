@@ -24,35 +24,9 @@ PROJECT(module_visit)
 OPTION(OSPRAY_MODULE_VISIT "Build visit-ospray module" OFF)
 IF (OSPRAY_MODULE_VISIT AND OSPRAY_MODULE_MPI)
 
-  INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/..)
-  INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/../mpi)
   INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/ospray)
   INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR}/ospray)
-  INCLUDE_DIRECTORIES(${MPI_CXX_INCLUDE_PATH})
-  OSPRAY_BUILD_COMPONENT(mpiCommon)
-  OSPRAY_BUILD_COMPONENT(mpiMessageLayer)
-
-  # build the actual new ospray geometry type.  since this plug in
-  # directly into the ospray core, we'll put it into a
-  # '<module>/ospray' subdirectory.
-  #
-  # This subdirectory will eventually build the
-  # libospray_module_<moduleName>.so library that defiens the actual
-  # core geometry type.
-  #
+  INCLUDE_DIRECTORIES(${MPI_INCLUDE_PATH} ${MPI_CXX_INCLUDE_PATH})
   ADD_SUBDIRECTORY(ospray)
-
-  # build the module-specific sample apps and tools. since these are
-  # stand-alone apps outside of the ospray core we'll put those into a
-  # '<module>/ospray' subdirectory.
-  #
-  # For this module this will build the 'ospBilinearPatchViewer'
-  # example. If other modules come with their own
-  # tools/converters/importers/etc, this is where those sohuld go.
-  #
-  OPTION(OSPRAY_MODULE_VISIT_APPS "Build applications for visit-ospray module" ON)
-  IF(OSPRAY_MODULE_VISIT_APPS)
-    ADD_SUBDIRECTORY(apps)
-  ENDIF()
 
 ENDIF ()

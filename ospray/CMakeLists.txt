@@ -41,20 +41,7 @@
 
 OSPRAY_CREATE_LIBRARY(ospray_module_visit
 
-  # the cpp file that contains all the plugin code - parsing
-  # parameters in ospCommit(), creating and registering the object,
-  # building accel strcutures, etc
-  
-  # the ispc file that contains the plugins for all vector code - ie,
-  # for ray-primitive intersection and 'postIntersect' (reporting info
-  # on a previously computed ray-prim intersection)
-
-  # renderer
-  render/VisItDistributedRaycast.cpp
-
   # volume without marcocell
-  # volume/VisItStructuredVolume.cpp
-  # volume/VisItStructuredVolume.ispc
   volume/VisItSharedStructuredVolume.cpp
   volume/VisItSharedStructuredVolume.ispc
 
@@ -64,16 +51,37 @@ OSPRAY_CREATE_LIBRARY(ospray_module_visit
   # this depends on ospray core:
   LINK
   ospray
-  ${MPI_CXX_LIBRARIES}
-  ospray_module_mpi
-  ospray_mpi_common
   ospray_common
-  ospray_mpi_maml 
+  ${MPI_CXX_LIBRARIES}
   )
 
 INSTALL(
   FILES 
-  ${CMAKE_CURRENT_SOURCE_DIR}/VisItModuleCommon.h
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ospray
-  )
+  VisItModuleCommon.h
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ospray/visit
+)
 
+# INSTALL(
+#   FILES 
+#   include/cpp.h
+#   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ospray/visit
+# )
+
+# INSTALL(
+#   FILES
+#   include/cpp/Camera.h
+#   include/cpp/Data.h
+#   include/cpp/Device.h
+#   include/cpp/FrameBuffer.h
+#   include/cpp/Geometry.h
+#   include/cpp/Light.h
+#   include/cpp/ManagedObject.h
+#   include/cpp/Material.h
+#   include/cpp/Model.h
+#   include/cpp/PixelOp.h
+#   include/cpp/Renderer.h
+#   include/cpp/Texture2D.h
+#   include/cpp/TransferFunction.h
+#   include/cpp/Volume.h
+#   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ospray/visit/cpp
+# )
