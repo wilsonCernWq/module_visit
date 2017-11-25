@@ -52,7 +52,6 @@ OSPRAY_CREATE_LIBRARY(ospray_module_visit
   LINK
   ospray
   ospray_common
-  ${MPI_CXX_LIBRARIES}
   )
 
 INSTALL(
