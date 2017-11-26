@@ -42,11 +42,14 @@
 OSPRAY_CREATE_LIBRARY(ospray_module_visit
 
   # volume without marcocell
+  volume/VisItSharedStructuredVolume.h
   volume/VisItSharedStructuredVolume.cpp
+  volume/VisItSharedStructuredVolume.ih
   volume/VisItSharedStructuredVolume.ispc
 
   # and finally, the module init code (not doing much, but must be there)
   moduleInit.cpp
+  VisItModuleCommon.h
   
   # this depends on ospray core:
   LINK
@@ -59,28 +62,3 @@ INSTALL(
   VisItModuleCommon.h
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ospray/visit
 )
-
-# INSTALL(
-#   FILES 
-#   include/cpp.h
-#   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ospray/visit
-# )
-
-# INSTALL(
-#   FILES
-#   include/cpp/Camera.h
-#   include/cpp/Data.h
-#   include/cpp/Device.h
-#   include/cpp/FrameBuffer.h
-#   include/cpp/Geometry.h
-#   include/cpp/Light.h
-#   include/cpp/ManagedObject.h
-#   include/cpp/Material.h
-#   include/cpp/Model.h
-#   include/cpp/PixelOp.h
-#   include/cpp/Renderer.h
-#   include/cpp/Texture2D.h
-#   include/cpp/TransferFunction.h
-#   include/cpp/Volume.h
-#   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ospray/visit/cpp
-# )

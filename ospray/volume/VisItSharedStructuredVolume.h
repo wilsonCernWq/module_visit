@@ -28,6 +28,7 @@ namespace ospray {
     struct OSPRAY_SDK_INTERFACE VisItSharedStructuredVolume 
       : public StructuredVolume
     {
+    public:
       VisItSharedStructuredVolume();
       virtual ~VisItSharedStructuredVolume();
 
@@ -42,30 +43,36 @@ namespace ospray {
       //!  VisItSharedStructuredVolume.
       virtual int setRegion(const void *source,
 			    const vec3i &index,
-			    const vec3i &count) override;
+			    const vec3i &count) override
+      { return false; };
+
+      //! Complete volume initialization (only on first commit).
+      virtual void finish();
 
     protected:
       //! Create the equivalent ISPC volume container.
       void createEquivalentISPC() override;
 
-      //! Complete volume initialization (only on first commit).
-      void finish() override;
-
       //! Called when a dependency of this object changes.
       void dependencyGotChanged(ManagedObject *object) override;
-
+      
       //! The voxelData object upon commit().
       Data *voxelData {nullptr};
 
-      //! The corresponding ghost region data
-      unsigned char *ghostData {nullptr};
+      //! The number of voxels
+      size_t voxelCount {0};
+      
+      //! The volume dimensions
+      vec3i dims {0,0,0};
 
-      //! the pointer to allocated data if the user did _not_ specify	
-      //! a shared buffer
-      void *allocatedVoxelData;
+      //! The global volume bounding box
+      box3f globalBoundingBox {vec3f{0.f,0.f,0.f},vec3f{0.f,0.f,0.f}};
 
-      //! flag to use grid accelerator
-      bool useGridAccelerator{false};
+      //! The global volume clipping box
+      box3f globalClippingBox {vec3f{0.f,0.f,0.f},vec3f{0.f,0.f,0.f}};
+	    
+      //! flags
+      bool useGridAccelerator {false}; //! flag to use grid accelerator
     };
 
   };

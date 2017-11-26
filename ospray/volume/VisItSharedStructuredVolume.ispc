@@ -98,7 +98,8 @@ template_getVoxel(double);
     assume that the offset is already in bytes (ie, WITHOUT scaling by
     the width of the array data type), the the base pointer must
     *STILL* be of the proper type for this macro to figure out the
-    type of data it's reading from this address */
+    type of data it's reading from this address 
+*/
 #define template_accessArray(type)                                           \
 inline float accessArrayWithOffset(const type *uniform basePtr,              \
                                    const varying uint32 offset)              \
@@ -127,10 +128,11 @@ template_accessArray(double);
   that calls the virtual 'getSample()' of the volume layout) this
   function will directly do all the addressing for the getSample
   (inlined), and thus be about 50% faster (wall-time, meaning even
-  much faster in pure sample speed) */
-#define template_sample(type)                                         \
-inline float SSV_sample_##type##_32(void *uniform _self,              \
-                                           const vec3f &worldCoordinates)    \
+  much faster in pure sample speed) 
+*/
+#define template_sample(type)                                                \
+inline float SSV_sample_##type##_32(void *uniform _self,                     \
+				    const vec3f &worldCoordinates)	     \
 {                                                                            \
   /* Cast to the actual Volume subtype. */                                   \
   VisItSharedStructuredVolume *uniform self                                  \
@@ -147,10 +149,14 @@ inline float SSV_sample_##type##_32(void *uniform _self,              \
       = clamp(localCoordinates, make_vec3f(0.0f),                            \
               self->super.localCoordinatesUpperBound);                       \
                                                                              \
-  /* Lower and upper corners of the box straddling the voxels to be interpolated. */\
+  /* Lower and upper corners of the box straddling the voxels to be          \
+   * interpolated.                                                           \
+   */									     \
   const vec3i voxelIndex_0 = to_int(clampedLocalCoordinates);                \
                                                                              \
-  /* Fractional coordinates within the lower corner voxel used during interpolation. */\
+  /* Fractional coordinates within the lower corner voxel used during        \
+   * interpolation.                                                          \
+   */									     \
   const vec3f frac = clampedLocalCoordinates - to_float(voxelIndex_0);       \
                                                                              \
   const uint32 voxelOfs                                                      \
@@ -190,8 +196,8 @@ inline float SSV_sample_##type##_32(void *uniform _self,              \
   return val;                                                                \
 }                                                                            \
                                                                              \
-inline float SSV_sample_##type##_64_32(void *uniform _self,           \
-                                              const vec3f &worldCoordinates) \
+inline float SSV_sample_##type##_64_32(void *uniform _self,                  \
+				       const vec3f &worldCoordinates)        \
 {                                                                            \
   /* Cast to the actual Volume subtype. */                                   \
   VisItSharedStructuredVolume *uniform self                                  \
@@ -208,10 +214,14 @@ inline float SSV_sample_##type##_64_32(void *uniform _self,           \
     = clamp(localCoordinates, make_vec3f(0.0f),                              \
             self->super.localCoordinatesUpperBound);                         \
                                                                              \
-  /* Lower and upper corners of the box straddling the voxels to be interpolated. */\
+  /* Lower and upper corners of the box straddling the voxels to be          \
+   * interpolated.							     \
+   */									     \
   const vec3i voxelIndex_0 = to_int(clampedLocalCoordinates);                \
                                                                              \
-  /* Fractional coordinates within the lower corner voxel used during interpolation. */\
+  /* Fractional coordinates within the lower corner voxel used during        \
+   * interpolation.							     \
+   */  									     \
   const vec3f frac = clampedLocalCoordinates - to_float(voxelIndex_0);       \
                                                                              \
   varying float ret = 0.f;                                                   \
@@ -269,14 +279,38 @@ VisItSSV_stepRay(void *uniform _volume,
 		 const varying float samplingRate)
 {
   // Cast to the actual Volume subtype.
-  StructuredVolume *uniform volume = (StructuredVolume *uniform) _volume;
+  uniform VisItSharedStructuredVolume *uniform volume =
+    (uniform VisItSharedStructuredVolume *uniform) _volume;
 
   // The recommended step size for ray casting based volume renderers.
-  const varying float step = volume->super.samplingStep * rcpf(samplingRate);
-  
+  const varying float step =
+    volume->super.super.samplingStep * rcpf(samplingRate);
+
   // Tentatively advance the ray.
   ray.t0 += step;
   ray.time = step;
+  if (ray.t0 >= ray.t) return;
+  
+  // Intersect volume bounding box.
+  varying float t0, t1;
+  intersectBox(ray, volume->localBoundingBox, t0, t1);
+
+  // Clip against volume clipping box (if specified).
+  if (ne(volume->localClippingBox.lower,
+	 volume->localClippingBox.upper)) {
+    varying float tClip0, tClip1;
+    intersectBox(ray, volume->localClippingBox, tClip0, tClip1);
+    t0 = max(t0, tClip0);
+    t1 = min(t1, tClip1);
+  }
+
+  // Modify ray start and end  
+  t0 = floor(t0 * rcpf(step)) * step;
+  t1 = ceil (t1 * rcpf(step)) * step;    
+  
+  // Advance ray if necessary
+  if (ray.t0 <  t0) ray.t0 = t0;
+  if (ray.t0 >= t1) ray.t0 = ray.t + 0.1f * step;
 }
 
 inline void 
@@ -286,14 +320,37 @@ VisItSSV_intersectIsosurface(void *uniform _volume,
 			     varying Ray &ray)
 {
   // Cast to the actual Volume subtype.
-  StructuredVolume *uniform volume = (StructuredVolume *uniform) _volume;
-
-  // The nominal step size for ray casting based volume renderers, not considering the sampling rate.
-  const uniform float step = volume->super.samplingStep;
+  uniform VisItSharedStructuredVolume *uniform volume =
+    (uniform VisItSharedStructuredVolume *uniform) _volume;
+  
+  // The nominal step size for ray casting based volume renderers, not
+  // considering the sampling rate.
+  const uniform float step = volume->super.super.samplingStep;
 
   // Tentatively advance the ray.
   ray.t0 += step;
   if (ray.t0 >= ray.t) return;
+
+  // Intersect volume bounding box.
+  varying float t0, t1;
+  intersectBox(ray, volume->localBoundingBox, t0, t1);
+
+  // Clip against volume clipping box (if specified).
+  if (ne(volume->localClippingBox.lower,
+	 volume->localClippingBox.upper)) {
+    varying float tClip0, tClip1;
+    intersectBox(ray, volume->localClippingBox, tClip0, tClip1);
+    t0 = max(t0, tClip0);
+    t1 = min(t1, tClip1);
+  }
+
+  // Modify ray start and end  
+  t0 = floor(t0 * rcpf(step)) * step;
+  t1 = ceil (t1 * rcpf(step)) * step;    
+  
+  // Advance ray if necessary
+  if (ray.t0 <  t0) ray.t0 = t0;
+  if (ray.t0 >= t1) ray.t0 = ray.t + 0.1f * step;
 }
 
 inline varying vec3f 
@@ -315,41 +372,101 @@ VisItSSV_computeGradient(void *uniform _volume,
   float sample = volume->super.sample(volume, worldCoordinates);
 
   // Gradient magnitude in the X direction.
-  gradient.x = volume->super.sample(volume, worldCoordinates + make_vec3f(gradientStep.x, 0.0f, 0.0f)) - sample;
+  varying vec3f gradient_dx =
+    worldCoordinates + make_vec3f(gradientStep.x, 0.0f, 0.0f);
+  gradient.x = volume->super.sample(volume, gradient_dx) - sample;
 
   // Gradient magnitude in the Y direction.
-  gradient.y = volume->super.sample(volume, worldCoordinates + make_vec3f(0.0f, gradientStep.y, 0.0f)) - sample;
+  varying vec3f gradient_dy =
+    worldCoordinates + make_vec3f(0.0f, gradientStep.y, 0.0f);
+  gradient.y = volume->super.sample(volume, gradient_dy) - sample;
 
   // Gradient magnitude in the Z direction.
-  gradient.z = volume->super.sample(volume, worldCoordinates + make_vec3f(0.0f, 0.0f, gradientStep.z)) - sample;
+  varying vec3f gradient_dz =
+    worldCoordinates + make_vec3f(0.0f, 0.0f, gradientStep.z);
+  gradient.z = volume->super.sample(volume, gradient_dz) - sample;
 
   // This approximation may yield image artifacts.
   return(gradient / gradientStep);
-
 }
 
-void 
-VisItSharedStructuredVolume_Constructor(VisItSharedStructuredVolume *uniform self,
-					void *uniform cppEquivalent,
-					uniform int useGridAccelerator,
-					const uniform int voxelType,
-					const uniform vec3i &dimensions,
-					const void *uniform voxelData)
+inline void 
+VisItSSV_setGlobalClippingBox(void *uniform _self,
+			      const uniform box3f &globalClippingBox)
 {
-  StructuredVolume_Constructor(&self->super, cppEquivalent, dimensions);
-  
-  // backup grid accelerator functions
-  self->useGridAccelerator = useGridAccelerator;
-  self->ga_stepRay = self->super.super.stepRay;
-  self->ga_intersectIsosurface = self->super.super.intersectIsosurface;
-  self->na_stepRay = VisItSSV_stepRay;
-  self->na_intersectIsosurface = VisItSSV_intersectIsosurface;
-  if (useGridAccelerator == 0) {
-      self->super.super.stepRay = self->na_stepRay;
-      self->super.super.intersectIsosurface = self->na_intersectIsosurface;
-  }
-  self->super.super.computeGradient = VisItSSV_computeGradient;
+  // Cast to the actual Volume subtype.
+  uniform VisItSharedStructuredVolume *uniform self =
+    (uniform VisItSharedStructuredVolume *uniform) _self;
 
+  // Set actual clipping box
+  self->globalClippingBox = globalClippingBox;
+  self->super.super.volumeClippingBox = globalClippingBox;
+}
+
+inline void 
+VisItSSV_setGlobalBoundingBox(void *uniform _self,
+			      const uniform box3f &globalBoundingBox)
+{
+  // Cast to the actual Volume subtype.
+  uniform VisItSharedStructuredVolume *uniform self =
+    (uniform VisItSharedStructuredVolume *uniform) _self;
+
+  // Set actual bounding box
+  self->globalBoundingBox = globalBoundingBox;
+  self->super.super.boundingBox = globalBoundingBox;
+}
+
+inline void 
+VisItSSV_selectGridAccelerator(void *uniform _self,
+			       const uniform int useGridAccelerator)
+{
+  // Cast to the actual Volume subtype.
+  uniform VisItSharedStructuredVolume *uniform self =
+    (uniform VisItSharedStructuredVolume *uniform) _self;
+
+  // Register
+  self->useGridAccelerator = useGridAccelerator;
+  if (useGridAccelerator == 0)
+  {
+    // Don't use grid acceleration
+    self->super.super.stepRay = self->na_stepRay;
+    self->super.super.intersectIsosurface = self->na_intersectIsosurface;
+  }
+  else {
+    // Use grid acceleration
+    self->super.super.stepRay = self->ga_stepRay;
+    self->super.super.intersectIsosurface = self->ga_intersectIsosurface;
+  }
+}
+
+void VisItSharedStructuredVolume_Constructor
+(uniform VisItSharedStructuredVolume *uniform self,
+ void *uniform cppEquivalent,
+ const uniform int useGridAccelerator,
+ const uniform int voxelType,
+ const uniform box3f &globalClippingBox,
+ const uniform box3f &globalBoundingBox,
+ const uniform vec3i &dimensions,
+ const void *uniform voxelData)
+{
+  // Call parent constructor
+  StructuredVolume_Constructor(&self->super, cppEquivalent, dimensions);
+
+  // Modify bounding box and clipping plane
+  self->localBoundingBox = self->super.super.boundingBox;
+  self->localClippingBox = self->super.super.volumeClippingBox;
+  VisItSSV_setGlobalClippingBox(self, globalClippingBox);
+  VisItSSV_setGlobalBoundingBox(self, globalBoundingBox);
+  
+  // Backup grid accelerator functions
+  self->ga_stepRay                  = self->super.super.stepRay;
+  self->ga_intersectIsosurface      = self->super.super.intersectIsosurface;
+  self->na_stepRay                  = VisItSSV_stepRay;
+  self->na_intersectIsosurface      = VisItSSV_intersectIsosurface;
+  self->super.super.computeGradient = VisItSSV_computeGradient;
+  VisItSSV_selectGridAccelerator(self, useGridAccelerator);
+
+  // Calculate volume size
   uniform uint64 bytesPerVoxel;
 
   if (voxelType == OSP_UCHAR)
@@ -440,56 +557,48 @@ VisItSharedStructuredVolume_Constructor(VisItSharedStructuredVolume *uniform sel
   }
 }
 
-export void *uniform 
-VisItSharedStructuredVolume_createInstance(void *uniform cppEquivalent, 
-					   uniform int useGridAccelerator,
-					   const uniform int voxelType, 
-					   const uniform vec3i &dimensions, 
-					   const void *uniform voxelData)
+export void
+VisItSSV_updateBoundingBox(void *uniform _self,			   
+			   const uniform box3f &globalBoundingBox)
 {
-  // The volume container.
+  VisItSSV_updateBoundingBox(_self, globalBoundingBox);
+}
+
+export void
+VisItSSV_updateClippingBox(void *uniform _self,			   
+			   const uniform box3f &globalClippingBox)
+{
+  VisItSSV_updateClippingBox(_self, globalClippingBox);
+}
+
+export void
+VisItSSV_updateGridAccelerator(void *uniform _self, 
+			       const uniform int useGridAccelerator)
+{
+  VisItSSV_selectGridAccelerator(_self, useGridAccelerator);
+}
+
+export void *uniform 
+VisItSSV_createInstance(void *uniform cppEquivalent, 
+			const uniform int useGridAccelerator,
+			const uniform int voxelType,
+			const uniform box3f &actualClippingBox,
+			const uniform box3f &actualBoundingBox,
+			const uniform vec3i &dimensions, 
+			const void *uniform voxelData)
+{
+  // Allocate the volume container
   VisItSharedStructuredVolume *uniform volume = 
     uniform new uniform VisItSharedStructuredVolume;
-
-  VisItSharedStructuredVolume_Constructor
-    (volume, cppEquivalent, useGridAccelerator, 
-     voxelType, dimensions, voxelData);
-
+  
+  // Create Volume
+  VisItSharedStructuredVolume_Constructor(volume,
+					  cppEquivalent,
+					  useGridAccelerator, 
+					  voxelType,
+					  actualClippingBox,
+					  actualBoundingBox,
+					  dimensions,
+					  voxelData);
   return volume;
 }
-
-/*! this is a very simple implementation that does not yet use either
-  vectors OR threads ... should be fixed */
-#define template_setRegion(type)                                             \
-export void VisItSharedStructuredVolume_setRegion_##type                     \
-(void *uniform _self,                                                        \
- const void *uniform source,                                                 \
- const uniform vec3i &index,                                                 \
- const uniform vec3i &count)                                                 \
-{                                                                            \
-  VisItSharedStructuredVolume *uniform self                                  \
-    = (VisItSharedStructuredVolume *uniform)_self;                           \
-  uniform type *uniform ptr_out = (uniform type *)self->voxelData;           \
-  const uniform type *uniform ptr_in = (const uniform type *)source;         \
-  for (uniform int iz=0;iz<count.z;iz++) {                                   \
-    uniform int64 iiz = iz + index.z;                                        \
-    for (uniform int iy=0;iy<count.y;iy++)                                   \
-      for (uniform int ix=0;ix<count.x;ix++) {                               \
-        uniform int64 iix = ix + index.x;                                    \
-        uniform int64 iiy = iy + index.y;                                    \
-        uniform int64 ofs_in                                                 \
-          = ix + count.x*(iy+count.y*(uniform int64)iz);                     \
-        uniform int64 ofs_out                                                \
-          = iix + self->super.dimensions.x                                   \
-          * (iiy+self->super.dimensions.y*iiz);                              \
-        *(ptr_out+ofs_out) = ptr_in[ofs_in];                                 \
-      }                                                                      \
-  }                                                                          \
-}
-
-template_setRegion(uint8);
-template_setRegion(int16);
-template_setRegion(uint16);
-template_setRegion(float);
-template_setRegion(double);
-#undef template_setRegion

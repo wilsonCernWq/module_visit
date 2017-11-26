@@ -19,48 +19,62 @@
 #include "ospray/OSPDataType.h"
 #include "volume/structured/StructuredVolume.ih"
 
-//! \brief ISPC variables and functions for the VisItSharedStructuredVolume class
+//! \brief ISPC variables and functions for the VisItSharedStructuredVolume
+//! class
 /*! \detailed The VisItSharedStructuredVolume is a concrete implementation
-  of the StructuredVolume class in which the voxel data is laid out in
-  memory in XYZ order and provided via a shared data buffer.
-*/
-struct VisItSharedStructuredVolume {
+ * of the StructuredVolume class in which the voxel data is laid out in
+ * memory in XYZ order and provided via a shared data buffer.
+ */
+struct VisItSharedStructuredVolume
+{
 
-  //! Fields common to all StructuredVolume subtypes (must be the first entry of this struct).
+  //! \brief Fields common to all StructuredVolume subtypes (must be the
+  //! first entry of this struct).
   StructuredVolume super;
 
   //! \brief pointer to voxel data. 
-  /* In this volume class, this memory region will typically be shared
-     with the applicattion, so we mess with either data layout */
+  /*! \detailed In this volume class, this memory region will typically be 
+   * shared with the applicattion, so we mess with either data layout
+   */
   const void *uniform voxelData;
 
-  //! \brief pointer to ghost region data. 
-  /* In VisIt, ghost region information forms a data array of the same
-     size with the voxelData, so we need a seperate data container here*/
-  const uint8 *uniform ghostData; // not used yet
+  //! \brief number of bytes for one x/y slice of the data. 
+  /*! \detailed THis is used to compute offsets for slices with different
+   * z values
+   */
+  uniform uint64 bytesPerVoxel, bytesPerLine, bytesPerSlice;
 
+  //! \brief Voxel type.
+  uniform OSPDataType voxelType;
+
+  //! \brief flag for use grid accelerator
   uniform int useGridAccelerator;
 
-  //! \brief number of bytes for one x/y slice of the data. 
-  /*! \detailed THis is used to compute offsets for slices with
-    different z values */
-  uniform uint64 bytesPerVoxel,bytesPerLine,bytesPerSlice;
+  //! \breif Global & local data clipping plane
+  uniform box3f globalClippingBox;
+  uniform box3f localClippingBox;
+  //! \breif Global & local data bounding box
+  uniform box3f globalBoundingBox;
+  uniform box3f localBoundingBox;
 
-  //! Voxel type.
-  uniform OSPDataType voxelType;
-  
-  /*! @{ offsets, in bytes, for one step in x,y,z direction. ONLY
-    valid if bytesPerSlice < 2G */
+  /*! @{
+   * offsets, in bytes, for one step in x,y,z direction.
+   * ONLY valid if bytesPerSlice < 2G
+   */
   varying uint32 voxelOfs_dx;
   varying uint32 voxelOfs_dy;
   varying uint32 voxelOfs_dz;
-  /* @} */
+  /*! @} */
     
-  //! Find the next hit point in the volume for ray casting based renderers.
-  void (*uniform ga_stepRay)(void *uniform _self, varying Ray &ray, const varying float samplingRate);
-  void (*uniform na_stepRay)(void *uniform _self, varying Ray &ray, const varying float samplingRate);
+  //! \brief Find the next hit point in the volume for ray casting based
+  //! renderers.
+  void (*uniform ga_stepRay)(void *uniform _self, varying Ray &ray,
+                             const varying float samplingRate);
+  void (*uniform na_stepRay)(void *uniform _self, varying Ray &ray,
+                             const varying float samplingRate);
 
-  //! Find the next isosurface hit point in the volume for ray casting based renderers.
+  //! \breif Find the next isosurface hit point in the volume for ray casting
+  //! based renderers.
   void (*uniform ga_intersectIsosurface)(void *uniform _self, 
 					 uniform float *uniform isovalues, 
 					 uniform int numIsovalues, 
@@ -69,11 +83,14 @@ struct VisItSharedStructuredVolume {
 					 uniform float *uniform isovalues, 
 					 uniform int numIsovalues, 
 					 varying Ray &ray);
-
 };
 
-void VisItSharedStructuredVolume_Constructor(VisItSharedStructuredVolume *uniform volume,
-					     void *uniform cppEquivalent,
-					     const uniform int voxelType,
-					     const uniform vec3i &dimensions,
-					     const void *uniform voxelData);
+void VisItSharedStructuredVolume_Constructor
+(uniform VisItSharedStructuredVolume *uniform self,
+ void *uniform cppEquivalent,
+ const uniform int useGridAccelerator,
+ const uniform int voxelType,
+ const uniform box3f &globalClippingBox,
+ const uniform box3f &globalBoundingBox,
+ const uniform vec3i &dimensions,
+ const void *uniform voxelData);
