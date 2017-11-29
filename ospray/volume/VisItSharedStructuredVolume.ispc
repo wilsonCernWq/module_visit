@@ -285,32 +285,30 @@ VisItSSV_stepRay(void *uniform _volume,
   // The recommended step size for ray casting based volume renderers.
   const varying float step =
     volume->super.super.samplingStep * rcpf(samplingRate);
+  const varying float rcp_step = rcpf(step);
 
   // Tentatively advance the ray.
   ray.t0 += step;
   ray.time = step;
   if (ray.t0 >= ray.t) return;
-  
+
   // Intersect volume bounding box.
   varying float t0, t1;
   intersectBox(ray, volume->localBoundingBox, t0, t1);
 
   // Clip against volume clipping box (if specified).
   if (ne(volume->localClippingBox.lower,
-	 volume->localClippingBox.upper)) {
+  	 volume->localClippingBox.upper)) 
+  {
     varying float tClip0, tClip1;
     intersectBox(ray, volume->localClippingBox, tClip0, tClip1);
     t0 = max(t0, tClip0);
     t1 = min(t1, tClip1);
   }
 
-  // Modify ray start and end  
-  t0 = floor(t0 * rcpf(step)) * step;
-  t1 = ceil (t1 * rcpf(step)) * step;    
-  
   // Advance ray if necessary
-  if (ray.t0 <  t0) ray.t0 = t0;
-  if (ray.t0 >= t1) ray.t0 = ray.t + 0.1f * step;
+  if (ray.t0 <= t0) ray.t0 += max(0.f, ceil((t0    - ray.t0) * rcp_step)) * step;
+  if (ray.t0 >= t1) ray.t0 += max(0.f, ceil((ray.t - ray.t0) * rcp_step)) * step;
 }
 
 inline void 
@@ -326,6 +324,7 @@ VisItSSV_intersectIsosurface(void *uniform _volume,
   // The nominal step size for ray casting based volume renderers, not
   // considering the sampling rate.
   const uniform float step = volume->super.super.samplingStep;
+  const uniform float rcp_step = rcpf(step);
 
   // Tentatively advance the ray.
   ray.t0 += step;
@@ -337,20 +336,17 @@ VisItSSV_intersectIsosurface(void *uniform _volume,
 
   // Clip against volume clipping box (if specified).
   if (ne(volume->localClippingBox.lower,
-	 volume->localClippingBox.upper)) {
+  	 volume->localClippingBox.upper)) 
+  {
     varying float tClip0, tClip1;
     intersectBox(ray, volume->localClippingBox, tClip0, tClip1);
     t0 = max(t0, tClip0);
     t1 = min(t1, tClip1);
   }
 
-  // Modify ray start and end  
-  t0 = floor(t0 * rcpf(step)) * step;
-  t1 = ceil (t1 * rcpf(step)) * step;    
-  
   // Advance ray if necessary
-  if (ray.t0 <  t0) ray.t0 = t0;
-  if (ray.t0 >= t1) ray.t0 = ray.t + 0.1f * step;
+  if (ray.t0 <= t0) ray.t0 += max(0.f, ceil((t0    - ray.t0) * rcp_step)) * step;
+  if (ray.t0 >= t1) ray.t0 += max(0.f, ceil((ray.t - ray.t0) * rcp_step)) * step;
 }
 
 inline varying vec3f 
@@ -391,43 +387,39 @@ VisItSSV_computeGradient(void *uniform _volume,
 }
 
 inline void 
-VisItSSV_setGlobalClippingBox(void *uniform _self,
-			      const uniform box3f &globalClippingBox)
+VisItSSV_setGlobalClippingBox
+(uniform VisItSharedStructuredVolume *uniform self,
+ const uniform box3f &globalClippingBox)
 {
-  // Cast to the actual Volume subtype.
-  uniform VisItSharedStructuredVolume *uniform self =
-    (uniform VisItSharedStructuredVolume *uniform) _self;
-
   // Set actual clipping box
+  self->localClippingBox = self->super.super.volumeClippingBox;
   self->globalClippingBox = globalClippingBox;
   self->super.super.volumeClippingBox = globalClippingBox;
 }
 
 inline void 
-VisItSSV_setGlobalBoundingBox(void *uniform _self,
-			      const uniform box3f &globalBoundingBox)
+VisItSSV_setGlobalBoundingBox
+(uniform VisItSharedStructuredVolume *uniform self,
+ const uniform box3f &globalBoundingBox)
 {
-  // Cast to the actual Volume subtype.
-  uniform VisItSharedStructuredVolume *uniform self =
-    (uniform VisItSharedStructuredVolume *uniform) _self;
-
   // Set actual bounding box
-  self->globalBoundingBox = globalBoundingBox;
-  self->super.super.boundingBox = globalBoundingBox;
+  if (ne(globalBoundingBox.lower,
+	 globalBoundingBox.upper)) 
+  {
+    self->localBoundingBox = self->super.super.boundingBox;
+    self->globalBoundingBox = globalBoundingBox;
+    self->super.super.boundingBox = globalBoundingBox;
+  }
 }
 
 inline void 
-VisItSSV_selectGridAccelerator(void *uniform _self,
-			       const uniform int useGridAccelerator)
+VisItSSV_selectGridAccelerator
+(uniform VisItSharedStructuredVolume *uniform self,
+ const uniform int useGridAccelerator)
 {
-  // Cast to the actual Volume subtype.
-  uniform VisItSharedStructuredVolume *uniform self =
-    (uniform VisItSharedStructuredVolume *uniform) _self;
-
   // Register
   self->useGridAccelerator = useGridAccelerator;
-  if (useGridAccelerator == 0)
-  {
+  if (useGridAccelerator == 0) {
     // Don't use grid acceleration
     self->super.super.stepRay = self->na_stepRay;
     self->super.super.intersectIsosurface = self->na_intersectIsosurface;
@@ -442,21 +434,12 @@ VisItSSV_selectGridAccelerator(void *uniform _self,
 void VisItSharedStructuredVolume_Constructor
 (uniform VisItSharedStructuredVolume *uniform self,
  void *uniform cppEquivalent,
- const uniform int useGridAccelerator,
  const uniform int voxelType,
- const uniform box3f &globalClippingBox,
- const uniform box3f &globalBoundingBox,
  const uniform vec3i &dimensions,
  const void *uniform voxelData)
 {
   // Call parent constructor
   StructuredVolume_Constructor(&self->super, cppEquivalent, dimensions);
-
-  // Modify bounding box and clipping plane
-  self->localBoundingBox = self->super.super.boundingBox;
-  self->localClippingBox = self->super.super.volumeClippingBox;
-  VisItSSV_setGlobalClippingBox(self, globalClippingBox);
-  VisItSSV_setGlobalBoundingBox(self, globalBoundingBox);
   
   // Backup grid accelerator functions
   self->ga_stepRay                  = self->super.super.stepRay;
@@ -464,7 +447,6 @@ void VisItSharedStructuredVolume_Constructor
   self->na_stepRay                  = VisItSSV_stepRay;
   self->na_intersectIsosurface      = VisItSSV_intersectIsosurface;
   self->super.super.computeGradient = VisItSSV_computeGradient;
-  VisItSSV_selectGridAccelerator(self, useGridAccelerator);
 
   // Calculate volume size
   uniform uint64 bytesPerVoxel;
@@ -561,29 +543,32 @@ export void
 VisItSSV_updateBoundingBox(void *uniform _self,			   
 			   const uniform box3f &globalBoundingBox)
 {
-  VisItSSV_updateBoundingBox(_self, globalBoundingBox);
+  uniform VisItSharedStructuredVolume *uniform self =
+    (uniform VisItSharedStructuredVolume *uniform) _self;
+  VisItSSV_setGlobalBoundingBox(self, globalBoundingBox);
 }
 
 export void
 VisItSSV_updateClippingBox(void *uniform _self,			   
 			   const uniform box3f &globalClippingBox)
 {
-  VisItSSV_updateClippingBox(_self, globalClippingBox);
+  uniform VisItSharedStructuredVolume *uniform self =
+    (uniform VisItSharedStructuredVolume *uniform) _self;
+  VisItSSV_setGlobalClippingBox(self, globalClippingBox);
 }
 
 export void
 VisItSSV_updateGridAccelerator(void *uniform _self, 
 			       const uniform int useGridAccelerator)
 {
-  VisItSSV_selectGridAccelerator(_self, useGridAccelerator);
+  uniform VisItSharedStructuredVolume *uniform self =
+    (uniform VisItSharedStructuredVolume *uniform) _self;
+  VisItSSV_selectGridAccelerator(self, useGridAccelerator);
 }
 
 export void *uniform 
 VisItSSV_createInstance(void *uniform cppEquivalent, 
-			const uniform int useGridAccelerator,
 			const uniform int voxelType,
-			const uniform box3f &actualClippingBox,
-			const uniform box3f &actualBoundingBox,
 			const uniform vec3i &dimensions, 
 			const void *uniform voxelData)
 {
@@ -594,10 +579,7 @@ VisItSSV_createInstance(void *uniform cppEquivalent,
   // Create Volume
   VisItSharedStructuredVolume_Constructor(volume,
 					  cppEquivalent,
-					  useGridAccelerator, 
 					  voxelType,
-					  actualClippingBox,
-					  actualBoundingBox,
 					  dimensions,
 					  voxelData);
   return volume;

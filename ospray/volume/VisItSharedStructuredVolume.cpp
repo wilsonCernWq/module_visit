@@ -45,43 +45,43 @@ namespace ospray {
       return ("ospray::VisItSharedStructuredVolume<" + voxelType + ">");
     }
     //----------------------------------------------------------------------//
-    void VisItSharedStructuredVolume::finish() {}
+    void VisItSharedStructuredVolume::finish() 
+    {
+      // Make the voxel value range visible to the application.
+      if (findParam("voxelRange") == NULL)
+      {
+	set("voxelRange", StructuredVolume::voxelRange);
+      }
+      else {
+	StructuredVolume::voxelRange =
+	  getParam2f("voxelRange", StructuredVolume::voxelRange);
+      }
+      // Build empty space skipping grid
+      if (this->useGridAccelerator)
+      {
+	buildAccelerator();
+      }
+      // Volume finish actions.
+      Volume::finish();
+    }
     //----------------------------------------------------------------------//
     void VisItSharedStructuredVolume::commit()
-    {           
+    {
       // Create the equivalent ISPC volume container.
       if (ispcEquivalent == nullptr) createEquivalentISPC();
       // StructuredVolume commit actions.
       // In order to completely disable grid accelerator, we need an ugly hack
-      bool trueFinished = StructuredVolume::finished;
-      StructuredVolume::finished = true;
+      bool initialized = finished;
+      finished = true;
       StructuredVolume::commit();
-      StructuredVolume::finished = trueFinished;
+      finished = initialized;
       // Complete volume initialization (only on first commit).
-      if (!StructuredVolume::finished)
+      if (!finished)
       {
-        // Make the voxel value range visible to the application.
-        if (findParam("voxelRange") == NULL)
-        {
-          set("voxelRange", StructuredVolume::voxelRange);
-        }
-        else {
-          StructuredVolume::voxelRange =
-	    getParam2f("voxelRange", StructuredVolume::voxelRange);
-        }
-        // Build empty space skipping grid
-        if (this->useGridAccelerator)
-        {
-          buildAccelerator();
-        }
-        // Volume finish actions.
-        Volume::finish();
-        StructuredVolume::finished = true;
+	finish();
+	finished = true;
       }
-    }
-    //----------------------------------------------------------------------//
-    void VisItSharedStructuredVolume::createEquivalentISPC()
-    {
+      
       // Check if use grid accelerator before building the volume
       useGridAccelerator = (bool)getParam1i("useGridAccelerator", 0);
       if (::ospray::visit::CheckVerbose())
@@ -89,6 +89,26 @@ namespace ospray {
         std::cout << "[ospray] using grid accelerator = "
                   << useGridAccelerator << std::endl;
       }
+      ispc::VisItSSV_updateGridAccelerator(ispcEquivalent, 
+					   (int)useGridAccelerator);
+
+      // Get global volume bounding box
+      globalBoundingBox = box3f(getParam3f("volumeGlobalBoundingBoxLower",
+					   vec3f(0.f)),
+				getParam3f("volumeGlobalBoundingBoxUpper",
+					   vec3f(0.f)));
+      ispc::VisItSSV_updateBoundingBox(ispcEquivalent, (const ispc::box3f &)globalBoundingBox);
+
+      // Get global volume bounding box
+      globalClippingBox = box3f(getParam3f("volumeGlobalClippingBoxLower",
+					   vec3f(0.f)),
+				getParam3f("volumeGlobalClippingBoxUpper",
+					   vec3f(0.f)));
+      ispc::VisItSSV_updateClippingBox(ispcEquivalent, (const ispc::box3f &)globalClippingBox);
+    }
+    //----------------------------------------------------------------------//
+    void VisItSharedStructuredVolume::createEquivalentISPC()
+    {
       // Get the voxel type.
       voxelType = getParamString("voxelType", "unspecified");
       const OSPDataType ospVoxelType = getVoxelType();
@@ -106,35 +126,12 @@ namespace ospray {
       }
       // The voxel count.
       voxelCount = (size_t) dims.x * (size_t) dims.y * (size_t) dims.z;
-
-      // Get global volume bounding box
-      globalBoundingBox = box3f(getParam3f("volumeGlobalBoundingBoxLower",
-					   vec3f(0.f)),
-				getParam3f("volumeGlobalBoundingBoxUpper",
-					   vec3f(0.f)));
-
-      // Get global volume bounding box
-      globalClippingBox = box3f(getParam3f("volumeGlobalClippingBoxLower",
-					   vec3f(0.f)),
-				getParam3f("volumeGlobalClippingBoxUpper",
-					   vec3f(0.f)));
-      std::cout << globalBoundingBox.lower.x << " "
-		<< globalBoundingBox.lower.y << " "
-		<< globalBoundingBox.lower.z << " | "
-		<< globalBoundingBox.upper.x << " "
-		<< globalBoundingBox.upper.y << " "
-		<< globalBoundingBox.upper.z << std::endl;
       
       // Create an ISPC VisItSharedStructuredVolume object and assign
       // type-specific function pointers.
       ispcEquivalent
           = ispc::VisItSSV_createInstance(this,
-					  (int)useGridAccelerator,
 					  ospVoxelType,
-					  (const ispc::box3f &)
-					  globalClippingBox,
-					  (const ispc::box3f &)
-					  globalBoundingBox,
 					  (const ispc::vec3i &) dims,
 					  voxelData->data);
       // Listen for changes to voxelData.

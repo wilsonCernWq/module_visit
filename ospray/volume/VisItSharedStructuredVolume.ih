@@ -88,9 +88,18 @@ struct VisItSharedStructuredVolume
 void VisItSharedStructuredVolume_Constructor
 (uniform VisItSharedStructuredVolume *uniform self,
  void *uniform cppEquivalent,
- const uniform int useGridAccelerator,
  const uniform int voxelType,
- const uniform box3f &globalClippingBox,
- const uniform box3f &globalBoundingBox,
  const uniform vec3i &dimensions,
  const void *uniform voxelData);
+
+void 
+VisItSSV_setGlobalClippingBox(uniform VisItSharedStructuredVolume *uniform self,
+			      const uniform box3f &globalClippingBox);
+
+void 
+VisItSSV_setGlobalBoundingBox(uniform VisItSharedStructuredVolume *uniform self,
+			      const uniform box3f &globalBoundingBox);
+
+void 
+VisItSSV_selectGridAccelerator(uniform VisItSharedStructuredVolume *uniform self,
+			       const uniform int useGridAccelerator);
