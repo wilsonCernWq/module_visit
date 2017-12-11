@@ -410,6 +410,10 @@ VisItSSV_setGlobalBoundingBox
     self->globalBoundingBox = globalBoundingBox;
     self->super.super.boundingBox = globalBoundingBox;
   }
+  else {
+    self->localBoundingBox = self->super.super.boundingBox;
+    self->globalBoundingBox = self->super.super.boundingBox;
+  }
 }
 
 inline void 
