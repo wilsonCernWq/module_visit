@@ -49,6 +49,7 @@ OSPRAY_CREATE_LIBRARY(ospray_module_visit
 
   # and finally, the module init code (not doing much, but must be there)
   moduleInit.cpp
+  moduleInit.ispc
   VisItModuleCommon.h
   
   # this depends on ospray core:

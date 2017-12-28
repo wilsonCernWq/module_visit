@@ -27,6 +27,10 @@ namespace ospray {
   namespace visit {
     //! this is the verbose flag, which is used in VisIt also
     extern bool verbose;
-    inline bool CheckVerbose() { return verbose; }
+    extern "C" inline bool CheckVerbose() { return verbose; }
+    extern "C" void Experiment();
+    extern "C" void ComposeBackground(int*, int*, int, int, float *,
+				      unsigned char *, float *,
+				      unsigned char *&);
   };
 };

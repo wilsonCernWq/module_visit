@@ -16,8 +16,9 @@
 
 /*! \file ospray/moduleInit \brief Defines the module initialization callback */
 
-#include "ospcommon/utility/getEnvVar.h"
 #include "VisItModuleCommon.h"
+#include "moduleInit_ispc.h"
+#include "ospcommon/utility/getEnvVar.h"
 #include "volume/VisItSharedStructuredVolume.h"
 
 /*! _everything_ in the ospray core universe should _always_ be in the
@@ -64,6 +65,37 @@ namespace ospray {
 	std::cout << "[ospray] initializing the 'visit' module" << std::endl;
       }
       /* nothing to do, actually - this is only an example */
+    }
+
+    extern "C" void Experiment()
+    {
+      std::cout << "[ospray] experiment_visit from CXX" << std::endl;
+      ispc::ISPC_Experiment();
+    }
+
+    extern "C" void ComposeBackground(int *screen,
+				      int *compositedImageExtents,
+				      int  compositedImageWidth,
+				      int  compositedImageHeight,
+				      float *compositedImageBuffer,
+				      unsigned char *opaqueImageColor,
+				      float         *opaqueImageDepth,
+				      unsigned char *&imgFinal)
+    {
+      const int batch = 16;
+      const int tasks = screen[0] * screen[1] / batch;
+      tasking::parallel_for(tasks, [=](int taskIndex) {
+	  ispc::ISPC_ComposeBackground(taskIndex * batch, batch,
+				       compositedImageExtents,
+				       compositedImageWidth,
+				       compositedImageHeight,
+				       compositedImageBuffer,
+				       screen[0], screen[1],
+				       (ospray::uint8*)opaqueImageColor,
+				       opaqueImageDepth,
+				       (ospray::uint8*)imgFinal);
+
+	});
     }
     
   }; // ::ospray::visit
