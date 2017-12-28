@@ -20,6 +20,7 @@
 #include "moduleInit_ispc.h"
 #include "ospcommon/utility/getEnvVar.h"
 #include "volume/VisItSharedStructuredVolume.h"
+#include <cmath>
 
 /*! _everything_ in the ospray core universe should _always_ be in the
   'ospray' namespace. */
@@ -82,10 +83,11 @@ namespace ospray {
 				      float         *opaqueImageDepth,
 				      unsigned char *&imgFinal)
     {
-      const int batch = 16;
-      const int tasks = screen[0] * screen[1] / batch;
+      const int batch = TILE_SIZE * TILE_SIZE;
+      const int psize = screen[0] * screen[1];
+      const int tasks = std::ceil(psize / batch);
       tasking::parallel_for(tasks, [=](int taskIndex) {
-	  ispc::ISPC_ComposeBackground(taskIndex * batch, batch,
+	  ispc::ISPC_ComposeBackground(taskIndex * batch, std::min(taskIndex * batch + batch, psize),
 				       compositedImageExtents,
 				       compositedImageWidth,
 				       compositedImageHeight,
@@ -98,6 +100,78 @@ namespace ospray {
 	});
     }
     
+    extern "C" void BlendFrontToBack(const int   *blendExtents,
+				     const int   *srcExtents,
+				     const float *srcImage,
+				     const int   *dstExtents,
+				     float      *&dstImage)
+    {  
+      // image sizes
+      const int srcX = srcExtents[1] - srcExtents[0];
+      const int srcY = srcExtents[3] - srcExtents[2];
+      const int dstX = dstExtents[1] - dstExtents[0];
+      const int dstY = dstExtents[3] - dstExtents[2];
+      // determin the region to blend
+      const int startX = 
+	std::max(std::max(blendExtents[0], srcExtents[0]), dstExtents[0]);
+      const int startY = 
+	std::max(std::max(blendExtents[2], srcExtents[2]), dstExtents[2]);
+      const int endX = 
+	std::min(std::min(blendExtents[1], srcExtents[1]), dstExtents[1]);
+      const int endY = 
+	std::min(std::min(blendExtents[3], srcExtents[3]), dstExtents[3]);
+      // render
+      const int W = endX - startX;
+      const int H = endY - startY;
+      const int psize = W * H;
+      const int batch = TILE_SIZE * TILE_SIZE;
+      const int tasks = std::ceil(psize / batch);      
+      tasking::parallel_for(tasks, [=](int taskIndex) {
+	  ispc::ISPC_BlendFrontToBack(taskIndex * batch,
+				      std::min(taskIndex * batch + batch, psize),
+				      startX, startY, W, H, srcX, srcY, dstX, dstY,
+				      blendExtents,
+				      srcExtents, srcImage,
+				      dstExtents, dstImage);
+	});
+    }
+
+    extern "C" void BlendBackToFront(const int   *blendExtents,
+				     const int   *srcExtents,
+				     const float *srcImage,
+				     const int   *dstExtents,
+				     float      *&dstImage)
+    {  
+      // image sizes
+      const int srcX = srcExtents[1] - srcExtents[0];
+      const int srcY = srcExtents[3] - srcExtents[2];
+      const int dstX = dstExtents[1] - dstExtents[0];
+      const int dstY = dstExtents[3] - dstExtents[2];
+      // determin the region to blend
+      const int startX = 
+	std::max(std::max(blendExtents[0], srcExtents[0]), dstExtents[0]);
+      const int startY = 
+	std::max(std::max(blendExtents[2], srcExtents[2]), dstExtents[2]);
+      const int endX = 
+	std::min(std::min(blendExtents[1], srcExtents[1]), dstExtents[1]);
+      const int endY = 
+	std::min(std::min(blendExtents[3], srcExtents[3]), dstExtents[3]);
+      // render
+      const int W = endX - startX;
+      const int H = endY - startY;
+      const int psize = W * H;
+      const int batch = TILE_SIZE * TILE_SIZE;
+      const int tasks = std::ceil(psize / batch);
+      tasking::parallel_for(tasks, [=](int taskIndex) {
+	  ispc::ISPC_BlendBackToFront(taskIndex * batch,
+				      std::min(taskIndex * batch + batch, psize),
+				      startX, startY, W, H, srcX, srcY, dstX, dstY,
+				      blendExtents,
+				      srcExtents, srcImage,
+				      dstExtents, dstImage);
+	});
+    }
+
   }; // ::ospray::visit
 
 }; // ::ospray

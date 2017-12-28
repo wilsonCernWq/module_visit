@@ -22,7 +22,7 @@ export void ISPC_Experiment()
 }
 
 export void ISPC_ComposeBackground(const uniform int start,
-				   const uniform int count,
+				   const uniform int end,
 				   const uniform int *uniform fgRegion,
 				   const uniform int fgW,
 				   const uniform int fgH,
@@ -33,7 +33,7 @@ export void ISPC_ComposeBackground(const uniform int start,
 				   const uniform float *uniform         bgDepth,
 				   uniform uint8 *uniform output)
 {
-  foreach(k = start ... (start + count))
+  foreach(k = start ... end)
   {
     int x = k % bgW;
     int y = k / bgW;
@@ -67,3 +67,84 @@ export void ISPC_ComposeBackground(const uniform int start,
     }
   }
 }
+
+export void ISPC_BlendFrontToBack(const uniform int start,
+				  const uniform int end,
+				  const uniform int startX,
+				  const uniform int startY,
+				  const uniform int W, const uniform int H,
+				  const uniform int srcX,
+				  const uniform int srcY,
+				  const uniform int dstX,
+				  const uniform int dstY,
+				  const uniform int   * uniform blendExtents,
+				  const uniform int   * uniform srcExtents,
+				  const uniform float * uniform srcImage,
+				  const uniform int   * uniform dstExtents,
+				  uniform float       * uniform dstImage)
+{  
+  foreach(k = start ... end)
+  {
+    // get indices
+    int x = k % W + startX;
+    int y = k / W + startY;
+    int srcIndex = (srcX * (y-srcExtents[2]) + x-srcExtents[0]) * 4;
+    int dstIndex = (dstX * (y-dstExtents[2]) + x-dstExtents[0]) * 4;    
+    // front to back compositing
+    if (dstImage[dstIndex + 3] < 1.0f) {
+      float trans = 1.0f - dstImage[dstIndex + 3];
+      dstImage[dstIndex+0] = 
+        clamp(srcImage[srcIndex+0] * trans + dstImage[dstIndex+0],
+	      0.0f, 1.0f);
+      dstImage[dstIndex+1] = 
+	clamp(srcImage[srcIndex+1] * trans + dstImage[dstIndex+1],
+	      0.0f, 1.0f);
+      dstImage[dstIndex+2] = 
+	clamp(srcImage[srcIndex+2] * trans + dstImage[dstIndex+2],
+	      0.0f, 1.0f);
+      dstImage[dstIndex+3] = 
+	clamp(srcImage[srcIndex+3] * trans + dstImage[dstIndex+3],
+	      0.0f, 1.0f);
+    }
+  }
+}
+
+export void ISPC_BlendBackToFront(const uniform int start,
+				  const uniform int end,
+				  const uniform int startX,
+				  const uniform int startY,
+				  const uniform int W, const uniform int H,
+				  const uniform int srcX,
+				  const uniform int srcY,
+				  const uniform int dstX,
+				  const uniform int dstY,
+				  const uniform int   * uniform blendExtents,
+				  const uniform int   * uniform srcExtents,
+				  const uniform float * uniform srcImage,
+				  const uniform int   * uniform dstExtents,
+				  uniform float       * uniform dstImage)
+{  
+  foreach(k = start ... end)
+  {
+    // get indices
+    int x = k % W + startX;
+    int y = k / W + startY;
+    int srcIndex = (srcX * (y-srcExtents[2]) + x-srcExtents[0]) * 4;
+    int dstIndex = (dstX * (y-dstExtents[2]) + x-dstExtents[0]) * 4;    
+    // back to front compositing	    
+    float trans = 1.0f - srcImage[srcIndex + 3];
+    dstImage[dstIndex+0] = 
+      clamp(dstImage[dstIndex+0] * trans + srcImage[srcIndex+0],
+	    0.0f, 1.0f);
+    dstImage[dstIndex+1] = 
+      clamp(dstImage[dstIndex+1] * trans + srcImage[srcIndex+1],
+	    0.0f, 1.0f);
+    dstImage[dstIndex+2] = 
+      clamp(dstImage[dstIndex+2] * trans + srcImage[srcIndex+2],
+	    0.0f, 1.0f);
+    dstImage[dstIndex+3] = 
+      clamp(dstImage[dstIndex+3] * trans + srcImage[srcIndex+3],
+	    0.0f, 1.0f);
+  }
+}
+

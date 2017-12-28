@@ -32,5 +32,16 @@ namespace ospray {
     extern "C" void ComposeBackground(int*, int*, int, int, float *,
 				      unsigned char *, float *,
 				      unsigned char *&);
+    extern "C" void BlendFrontToBack(const int   *blendExtents,
+				     const int   *srcExtents,
+				     const float *srcImage,
+				     const int   *dstExtents,
+				     float      *&dstImage);
+    extern "C" void BlendBackToFront(const int   *blendExtents,
+				     const int   *srcExtents,
+				     const float *srcImage,
+				     const int   *dstExtents,
+				     float      *&dstImage);
+
   };
 };
