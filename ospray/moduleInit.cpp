@@ -57,6 +57,7 @@ namespace ospray {
     bool verbose = false;
     extern "C" void ospray_init_module_visit()
     {
+      /* initialize global variables */
       using ospcommon::utility::getEnvVar;
       auto OSPRAY_VERBOSE = 
 	getEnvVar<int>("OSPRAY_VERBOSE").value_or(0);
@@ -65,9 +66,9 @@ namespace ospray {
       {
 	std::cout << "[ospray] initializing the 'visit' module" << std::endl;
       }
-      /* nothing to do, actually - this is only an example */
     }
 
+    /* nothing to do, actually - this is only an example */
     extern "C" void Experiment()
     {
       std::cout << "[ospray] experiment_visit from CXX" << std::endl;
@@ -87,7 +88,9 @@ namespace ospray {
       const int psize = screen[0] * screen[1];
       const int tasks = std::ceil(psize / batch);
       tasking::parallel_for(tasks, [=](int taskIndex) {
-	  ispc::ISPC_ComposeBackground(taskIndex * batch, std::min(taskIndex * batch + batch, psize),
+	  ispc::ISPC_ComposeBackground(taskIndex * batch,
+				       std::min(taskIndex * batch + batch,
+						psize),
 				       compositedImageExtents,
 				       compositedImageWidth,
 				       compositedImageHeight,
@@ -128,8 +131,10 @@ namespace ospray {
       const int tasks = std::ceil(psize / batch);      
       tasking::parallel_for(tasks, [=](int taskIndex) {
 	  ispc::ISPC_BlendFrontToBack(taskIndex * batch,
-				      std::min(taskIndex * batch + batch, psize),
-				      startX, startY, W, H, srcX, srcY, dstX, dstY,
+				      std::min(taskIndex * batch + batch,
+					       psize),
+				      startX, startY, W, H,
+				      srcX, srcY, dstX, dstY,
 				      blendExtents,
 				      srcExtents, srcImage,
 				      dstExtents, dstImage);
@@ -164,8 +169,10 @@ namespace ospray {
       const int tasks = std::ceil(psize / batch);
       tasking::parallel_for(tasks, [=](int taskIndex) {
 	  ispc::ISPC_BlendBackToFront(taskIndex * batch,
-				      std::min(taskIndex * batch + batch, psize),
-				      startX, startY, W, H, srcX, srcY, dstX, dstY,
+				      std::min(taskIndex * batch + batch,
+					       psize),
+				      startX, startY, W, H,
+				      srcX, srcY, dstX, dstY,
 				      blendExtents,
 				      srcExtents, srcImage,
 				      dstExtents, dstImage);
