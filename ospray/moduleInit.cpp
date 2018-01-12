@@ -21,6 +21,7 @@
 #include "ospcommon/utility/getEnvVar.h"
 #include "volume/VisItSharedStructuredVolume.h"
 #include <cmath>
+#include <mutex>
 
 /*! _everything_ in the ospray core universe should _always_ be in the
   'ospray' namespace. */
@@ -86,7 +87,8 @@ namespace ospray {
     {
       const int batch = TILE_SIZE * TILE_SIZE;
       const int psize = screen[0] * screen[1];
-      const int tasks = std::ceil(psize / batch);
+      const int tasks = std::ceil(static_cast<float>(psize) / 
+				  static_cast<float>(batch));
       tasking::parallel_for(tasks, [=](int taskIndex) {
 	  ispc::ISPC_ComposeBackground(taskIndex * batch,
 				       std::min(taskIndex * batch + batch,
@@ -128,10 +130,11 @@ namespace ospray {
       const int H = endY - startY;
       const int psize = W * H;
       const int batch = TILE_SIZE * TILE_SIZE;
-      const int tasks = std::ceil(psize / batch);      
+      const int tasks = std::ceil(static_cast<float>(psize) / 
+				  static_cast<float>(batch));
       tasking::parallel_for(tasks, [=](int taskIndex) {
 	  ispc::ISPC_BlendFrontToBack(taskIndex * batch,
-				      std::min(taskIndex * batch + batch,
+				      std::min(taskIndex * batch + batch, 
 					       psize),
 				      startX, startY, W, H,
 				      srcX, srcY, dstX, dstY,
@@ -166,7 +169,8 @@ namespace ospray {
       const int H = endY - startY;
       const int psize = W * H;
       const int batch = TILE_SIZE * TILE_SIZE;
-      const int tasks = std::ceil(psize / batch);
+      const int tasks = std::ceil(static_cast<float>(psize) / 
+				  static_cast<float>(batch));
       tasking::parallel_for(tasks, [=](int taskIndex) {
 	  ispc::ISPC_BlendBackToFront(taskIndex * batch,
 				      std::min(taskIndex * batch + batch,
