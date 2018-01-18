@@ -14,13 +14,20 @@
 ## limitations under the License.                                           ##
 ## ======================================================================== ##
 
-# Define an option to enable/disable this module.
-#
-# Though not actually required we guard each module 'moduleName' with
-# a OSPRAY_MODULE_MODULENAME flag that enables/disables its building.
-#
-OPTION(OSPRAY_MODULE_VISIT "Build visit-ospray module" OFF)
-IF (OSPRAY_MODULE_VISIT)
-  ADD_SUBDIRECTORY(ospray)
-  ADD_SUBDIRECTORY(composite)
-ENDIF ()
+INCLUDE_DIRECTORIES(
+  ${PROJECT_SOURCE_DIR}/ospray
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${MPI_INCLUDE_PATH} 
+  ${MPI_CXX_INCLUDE_PATH})
+
+OSPRAY_CREATE_LIBRARY(visit_image_composite
+  VisItImageComposite.ispc
+  VisItImageComposite.cpp
+  VisItImageComposite.h
+  )
+
+INSTALL(
+  FILES
+  VisItImageComposite.h
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ospray/visit
+)

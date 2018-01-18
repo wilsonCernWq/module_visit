@@ -39,6 +39,13 @@
 #    void ospray_init_module_<moduleName>()
 #
 
+INCLUDE_DIRECTORIES(
+  ${PROJECT_SOURCE_DIR}/ospray
+  ${PROJECT_BINARY_DIR}/ospray
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${MPI_INCLUDE_PATH} 
+  ${MPI_CXX_INCLUDE_PATH})
+
 OSPRAY_CREATE_LIBRARY(ospray_module_visit
 
   # volume without marcocell
@@ -49,7 +56,6 @@ OSPRAY_CREATE_LIBRARY(ospray_module_visit
 
   # and finally, the module init code (not doing much, but must be there)
   moduleInit.cpp
-  moduleInit.ispc
   VisItModuleCommon.h
   
   # this depends on ospray core:
