@@ -35,5 +35,6 @@ namespace visit {
 				   const float *srcImage,
 				   const int   *dstExtents,
 				   float      *&dstImage);
-
+//  extern "C" void CompositeInit(int W, int H);
+//  extern "C" void CompositeSetTile(const float*, const int*, const float&, float*&);
 };

@@ -14,16 +14,25 @@
 ## limitations under the License.                                           ##
 ## ======================================================================== ##
 
+# FIND_PACKAGE(IceT REQUIRED)
+# FIND_PACKAGE(OpenGL REQUIRED)
+
 INCLUDE_DIRECTORIES(
   ${PROJECT_SOURCE_DIR}/ospray
   ${CMAKE_CURRENT_SOURCE_DIR}
-  ${MPI_INCLUDE_PATH} 
-  ${MPI_CXX_INCLUDE_PATH})
+#  ${ICET_INCLUDE_DIRS}
+#  ${MPI_C_INCLUDE_PATH}
+  )
 
 OSPRAY_CREATE_LIBRARY(visit_image_composite
   VisItImageComposite.ispc
   VisItImageComposite.cpp
   VisItImageComposite.h
+#  LINK
+#  ${MPI_C_LIBRARY}
+#  ${ICET_CORE_LIBS}
+#  ${ICET_GL_LIBS}
+#  ${ICET_MPI_LIBS}
   )
 
 INSTALL(
