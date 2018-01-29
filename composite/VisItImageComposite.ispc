@@ -21,17 +21,17 @@ export void ISPC_Experiment()
   print("[ospray] experiment_visit from ISPC\n");
 }
 
-export void ISPC_ComposeBackground(const uniform int start,
-				   const uniform int end,
-				   const uniform int *uniform fgRegion,
-				   const uniform int fgW,
-				   const uniform int fgH,
-				   const uniform float *uniform fgBuffer,
-				   const uniform int bgW,
-				   const uniform int bgH,
-				   const uniform uint8 *uniform bgColor,
-				   const uniform float *uniform         bgDepth,
-				   uniform uint8 *uniform output)
+export void ISPC_CompositeBackground(const uniform int start,
+				     const uniform int end,
+				     const uniform int *uniform fgRegion,
+				     const uniform int fgW,
+				     const uniform int fgH,
+				     const uniform float *uniform fgBuffer,
+				     const uniform int bgW,
+				     const uniform int bgH,
+				     const uniform uint8 *uniform bgColor,
+				     const uniform float *uniform bgDepth,
+				     uniform uint8 *uniform output)
 {
   foreach(k = start ... end)
   {

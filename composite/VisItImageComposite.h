@@ -22,9 +22,9 @@
 namespace visit {
   
   extern "C" void Experiment();
-  extern "C" void ComposeBackground(int*, int*, int, int, float *,
-				    unsigned char *, float *,
-				    unsigned char *&);
+  extern "C" void CompositeBackground(int*, int*, int, int, float *,
+				      unsigned char *, float *,
+				      unsigned char *&);
   extern "C" void BlendFrontToBack(const int   *blendExtents,
 				   const int   *srcExtents,
 				   const float *srcImage,
@@ -35,6 +35,4 @@ namespace visit {
 				   const float *srcImage,
 				   const int   *dstExtents,
 				   float      *&dstImage);
-//  extern "C" void CompositeInit(int W, int H);
-//  extern "C" void CompositeSetTile(const float*, const int*, const float&, float*&);
 };
