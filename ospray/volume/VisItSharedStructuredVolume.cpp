@@ -48,9 +48,9 @@ namespace ospray {
     void VisItSharedStructuredVolume::finish() 
     {
       // Make the voxel value range visible to the application.
-      if (findParam("voxelRange") == NULL)
+      if (!hasParam("voxelRange"))
       {
-	set("voxelRange", StructuredVolume::voxelRange);
+	setParam("voxelRange", StructuredVolume::voxelRange);
       }
       else {
 	StructuredVolume::voxelRange =
@@ -112,17 +112,18 @@ namespace ospray {
       // Get the voxel type.
       voxelType = getParamString("voxelType", "unspecified");
       const OSPDataType ospVoxelType = getVoxelType();
-      exitOnCondition(ospVoxelType == OSP_UNKNOWN, "Unrecognized voxel type");
+      if (ospVoxelType == OSP_UNKNOWN)
+	throw std::runtime_error("unrecognized voxel type");
       // Get the volume dimensions.
       dims = getParam3i("dimensions", vec3i(0));
-      exitOnCondition(reduce_min(dims) <= 0, "Invalid volume dimensions");
+      if (reduce_min(dims) <= 0)
+	throw std::runtime_error("invalid volume dimensions");
       // Get the voxel data.
       voxelData = (Data *) getParamObject("voxelData", nullptr);
-      if (voxelData)
-      {
-        exitOnCondition(!(voxelData->flags & OSP_DATA_SHARED_BUFFER),
-             "The voxel data buffer was not created with the "
-             "OSP_DATA_SHARED_BUFFER flag");
+      if (voxelData && !(voxelData->flags & OSP_DATA_SHARED_BUFFER)) {
+	postStatusMsg(1)
+	  << "WARNING: The voxel data buffer was not created with the "
+	  << "OSP_DATA_SHARED_BUFFER flag";
       }
       // The voxel count.
       voxelCount = (size_t) dims.x * (size_t) dims.y * (size_t) dims.z;
