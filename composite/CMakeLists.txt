@@ -20,19 +20,14 @@
 INCLUDE_DIRECTORIES(
   ${PROJECT_SOURCE_DIR}/ospray
   ${CMAKE_CURRENT_SOURCE_DIR}
-#  ${ICET_INCLUDE_DIRS}
-#  ${MPI_C_INCLUDE_PATH}
   )
 
 OSPRAY_CREATE_LIBRARY(visit_image_composite
   VisItImageComposite.ispc
   VisItImageComposite.cpp
   VisItImageComposite.h
-#  LINK
-#  ${MPI_C_LIBRARY}
-#  ${ICET_CORE_LIBS}
-#  ${ICET_GL_LIBS}
-#  ${ICET_MPI_LIBS}
+  LINK
+  ospray_module_ispc
   )
 
 INSTALL(
