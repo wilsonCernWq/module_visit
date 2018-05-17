@@ -152,12 +152,12 @@ inline float SSV_sample_##type##_32(void *uniform _self,                     \
   /* Lower and upper corners of the box straddling the voxels to be          \
    * interpolated.                                                           \
    */									     \
-  const vec3i voxelIndex_0 = integer_cast(clampedLocalCoordinates);          \
+  const vec3i voxelIndex_0 = to_int(clampedLocalCoordinates);                \
                                                                              \
   /* Fractional coordinates within the lower corner voxel used during        \
    * interpolation.                                                          \
    */									     \
-  const vec3f frac = clampedLocalCoordinates - float_cast(voxelIndex_0);     \
+  const vec3f frac = clampedLocalCoordinates - to_float(voxelIndex_0);       \
                                                                              \
   const uint32 voxelOfs                                                      \
     = voxelIndex_0.x * self->voxelOfs_dx                                     \
@@ -217,12 +217,12 @@ inline float SSV_sample_##type##_64_32(void *uniform _self,                  \
   /* Lower and upper corners of the box straddling the voxels to be          \
    * interpolated.							     \
    */									     \
-  const vec3i voxelIndex_0 = integer_cast(clampedLocalCoordinates);          \
+  const vec3i voxelIndex_0 = to_int(clampedLocalCoordinates);                \
                                                                              \
   /* Fractional coordinates within the lower corner voxel used during        \
    * interpolation.							     \
    */  									     \
-  const vec3f frac = clampedLocalCoordinates - float_cast(voxelIndex_0);     \
+  const vec3f frac = clampedLocalCoordinates - to_float(voxelIndex_0);       \
                                                                              \
   varying float ret = 0.f;                                                   \
   foreach_unique (sliceID in voxelIndex_0.z)  {                              \
@@ -315,6 +315,7 @@ inline void
 VisItSSV_intersectIsosurface(void *uniform _volume, 
 			     uniform float *uniform isovalues, 
 			     uniform int numIsovalues, 
+                             uniform size_t geomID,
 			     varying Ray &ray)
 {
   // Cast to the actual Volume subtype.
