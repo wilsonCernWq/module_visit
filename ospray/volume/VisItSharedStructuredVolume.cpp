@@ -50,7 +50,7 @@ namespace ospray {
       // Make the voxel value range visible to the application.
       if (!hasParam("voxelRange"))
       {
-	setParam("voxelRange", StructuredVolume::voxelRange);
+	set("voxelRange", StructuredVolume::voxelRange);
       }
       else {
 	StructuredVolume::voxelRange =

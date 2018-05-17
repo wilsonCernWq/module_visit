@@ -62,7 +62,6 @@ OSPRAY_CREATE_LIBRARY(ospray_module_visit
   LINK
   ospray
   ospray_common
-  ospray_module_ispc
   )
 
 INSTALL(

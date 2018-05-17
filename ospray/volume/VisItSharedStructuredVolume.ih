@@ -78,12 +78,10 @@ struct VisItSharedStructuredVolume
   void (*uniform ga_intersectIsosurface)(void *uniform _self, 
 					 uniform float *uniform isovalues, 
 					 uniform int numIsovalues, 
-                                         uniform size_t geomID,
 					 varying Ray &ray);
   void (*uniform na_intersectIsosurface)(void *uniform _self, 
 					 uniform float *uniform isovalues, 
 					 uniform int numIsovalues, 
-                                         uniform size_t geomID,
 					 varying Ray &ray);
 };
 
