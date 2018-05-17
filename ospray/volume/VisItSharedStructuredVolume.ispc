@@ -315,7 +315,6 @@ inline void
 VisItSSV_intersectIsosurface(void *uniform _volume, 
 			     uniform float *uniform isovalues, 
 			     uniform int numIsovalues, 
-                             uniform size_t geomID,
 			     varying Ray &ray)
 {
   // Cast to the actual Volume subtype.
