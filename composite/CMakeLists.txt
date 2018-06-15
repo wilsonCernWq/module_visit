@@ -28,10 +28,11 @@ OSPRAY_CREATE_LIBRARY(visit_image_composite
   VisItImageComposite.h
   LINK
   ospray_module_ispc
+  ospray
   )
 
 INSTALL(
   FILES
   VisItImageComposite.h
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ospray/visit
-)
+  )
