@@ -28,6 +28,7 @@ OSPRAY_CREATE_LIBRARY(visit_image_composite
   VisItImageComposite.h
   LINK
   ospray_module_ispc
+  ospray
   )
 
 INSTALL(
