@@ -22,7 +22,7 @@ INCLUDE_DIRECTORIES(
   ${CMAKE_CURRENT_SOURCE_DIR}
   )
 
-OSPRAY_CREATE_LIBRARY(visit_image_composite
+OSPRAY_CREATE_LIBRARY(ospray_module_visit_common
   VisItImageComposite.ispc
   VisItImageComposite.cpp
   VisItImageComposite.h

@@ -28,8 +28,7 @@
 #include <map>
 #include <mutex>
 
-using namespace ospray;
-
+namespace ospray {
 namespace visit {
 
   /* nothing to do, actually - this is only an example */
@@ -146,4 +145,4 @@ namespace visit {
       });
   }
 }; // ::ospray::visit
-  
+}; // ::ospray

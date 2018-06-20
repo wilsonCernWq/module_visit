@@ -19,6 +19,7 @@
 
 #pragma once
 
+namespace ospray {
 namespace visit {
   
   extern "C" void Experiment();
@@ -35,4 +36,5 @@ namespace visit {
 				   const float *srcImage,
 				   const int   *dstExtents,
 				   float      *&dstImage);
+};
 };
