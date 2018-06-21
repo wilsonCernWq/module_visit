@@ -16,9 +16,9 @@
 
 /*! \file ospray/moduleInit \brief Defines the module initialization callback */
 
+#include "moduleInit.h"
 #include "VisItModuleCommon.h"
-#include "volume/VisItSharedStructuredVolume.h"
-#include "ospcommon/utility/getEnvVar.h"
+#include <iostream>
 
 /*! _everything_ in the ospray core universe should _always_ be in the
   'ospray' namespace. */
@@ -29,6 +29,7 @@ namespace ospray {
     library and init function, the naming for this namespace doesn't
     particularlly matter. E.g., 'bilinearPatch', 'module_blp',
     'bilinar_patch' etc would all work equally well. */
+
   namespace visit {
     
     /*! the actual module initialization function. This function gets
@@ -52,15 +53,9 @@ namespace ospray {
       (see comments regarding library name in CMakeLists.txt)
     */
 
-    bool verbose = false;
     extern "C" void ospray_init_module_visit()
     {
-      /* initialize global variables */
-      using ospcommon::utility::getEnvVar;
-      auto OSPRAY_VERBOSE = 
-	getEnvVar<int>("OSPRAY_VERBOSE").value_or(0);
-      ::ospray::visit::verbose = OSPRAY_VERBOSE > 0; 
-      if (::ospray::visit::CheckVerbose()) 
+      if (ospray::visit::CheckVerbose()) 
       {
 	std::cout << "[ospray] initializing the 'visit' module" << std::endl;
       }

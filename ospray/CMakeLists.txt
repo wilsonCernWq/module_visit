@@ -42,31 +42,17 @@
 INCLUDE_DIRECTORIES(
   ${PROJECT_SOURCE_DIR}/ospray
   ${PROJECT_BINARY_DIR}/ospray
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ${MPI_INCLUDE_PATH} 
-  ${MPI_CXX_INCLUDE_PATH})
+  ${CMAKE_CURRENT_SOURCE_DIR})
 
 OSPRAY_CREATE_LIBRARY(ospray_module_visit
-
-  # volume without marcocell
   volume/VisItSharedStructuredVolume.h
   volume/VisItSharedStructuredVolume.cpp
   volume/VisItSharedStructuredVolume.ih
   volume/VisItSharedStructuredVolume.ispc
-
-  # and finally, the module init code (not doing much, but must be there)
   moduleInit.cpp
-  VisItModuleCommon.h
-  
-  # this depends on ospray core:
+  moduleInit.h 
   LINK
   ospray
   ospray_common
   ospray_module_ispc
   )
-
-INSTALL(
-  FILES 
-  VisItModuleCommon.h
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ospray/visit
-)

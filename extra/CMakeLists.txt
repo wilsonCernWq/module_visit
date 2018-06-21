@@ -35,4 +35,4 @@ INSTALL(
   FILES
   VisItImageComposite.h
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ospray/visit
-)
+  )

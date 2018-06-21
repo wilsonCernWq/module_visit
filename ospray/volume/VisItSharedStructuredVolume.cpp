@@ -14,13 +14,12 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-//ospray common
+// ospray common
 #include "common/Data.h"
-//ospray
+// module
 #include "VisItModuleCommon.h"
-//header
 #include "VisItSharedStructuredVolume.h"
-//ISPC
+// ISPC
 #include "VisItSharedStructuredVolume_ispc.h"
 #include "StructuredVolume_ispc.h"
 
@@ -29,7 +28,7 @@ namespace ospray {
     //----------------------------------------------------------------------//
     VisItSharedStructuredVolume::VisItSharedStructuredVolume()
     {
-      if (::ospray::visit::CheckVerbose())
+      if (ospray::visit::CheckVerbose())
       {
         std::cout << "[ospray] New VisItSharedStructuredVolume" << std::endl;
       }
@@ -84,7 +83,7 @@ namespace ospray {
       
       // Check if use grid accelerator before building the volume
       useGridAccelerator = (bool)getParam1i("useGridAccelerator", 0);
-      if (::ospray::visit::CheckVerbose())
+      if (ospray::visit::CheckVerbose())
       {
         std::cout << "[ospray] using grid accelerator = "
                   << useGridAccelerator << std::endl;
@@ -97,14 +96,16 @@ namespace ospray {
 					   vec3f(0.f)),
 				getParam3f("volumeGlobalBoundingBoxUpper",
 					   vec3f(0.f)));
-      ispc::VisItSSV_updateBoundingBox(ispcEquivalent, (const ispc::box3f &)globalBoundingBox);
+      ispc::VisItSSV_updateBoundingBox(ispcEquivalent, 
+                                       (const ispc::box3f&)globalBoundingBox);
 
       // Get global volume bounding box
       globalClippingBox = box3f(getParam3f("volumeGlobalClippingBoxLower",
 					   vec3f(0.f)),
 				getParam3f("volumeGlobalClippingBoxUpper",
 					   vec3f(0.f)));
-      ispc::VisItSSV_updateClippingBox(ispcEquivalent, (const ispc::box3f &)globalClippingBox);
+      ispc::VisItSSV_updateClippingBox(ispcEquivalent, 
+                                       (const ispc::box3f&)globalClippingBox);
     }
     //----------------------------------------------------------------------//
     void VisItSharedStructuredVolume::createEquivalentISPC()

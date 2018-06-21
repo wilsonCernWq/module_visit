@@ -18,11 +18,3 @@
 // this file will be installed so can expose new functions to the users
 
 #pragma once
-
-namespace ospray {
-  namespace visit {
-    //! this is the verbose flag, which is used in VisIt also
-    extern bool verbose;
-    extern "C" inline bool CheckVerbose() { return verbose; }
-  };
-};
