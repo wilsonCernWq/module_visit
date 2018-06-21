@@ -14,9 +14,6 @@
 ## limitations under the License.                                           ##
 ## ======================================================================== ##
 
-# FIND_PACKAGE(IceT REQUIRED)
-# FIND_PACKAGE(OpenGL REQUIRED)
-
 INCLUDE_DIRECTORIES(
   ${PROJECT_SOURCE_DIR}/ospray
   ${CMAKE_CURRENT_SOURCE_DIR}
@@ -26,13 +23,17 @@ OSPRAY_CREATE_LIBRARY(ospray_module_visit_common
   VisItImageComposite.ispc
   VisItImageComposite.cpp
   VisItImageComposite.h
+  VisItWrapper.cpp
+  VisItWrapper.h
   LINK
-  ospray_module_ispc
   ospray
+  ospray_common
+  ospray_module_ispc
   )
 
 INSTALL(
   FILES
+  VisItWrapper.h
   VisItImageComposite.h
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ospray/visit
   )
