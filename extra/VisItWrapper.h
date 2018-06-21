@@ -53,6 +53,40 @@ namespace ospray {
                const double datamin, const double datamax);      
     };
 
+    /**
+     * Camera Wrapper
+     */
+    struct Camera : public Object<OSPCamera> {
+    protected:
+      bool   orthographic;
+      int    windowExts[4];
+      int    screenSize[2];
+      double pan[2];        // pan ratio [0, 1]
+      double zoom;          // zoom factor
+    public:
+      Camera() : Object<OSPCamera>() {
+        orthographic = false;
+        windowExts[0] = windowExts[1] = 0;
+        windowExts[2] = windowExts[3] = 0;
+        screenSize[0] = screenSize[1] = 0;
+        pan[0] = pan[1] = 0.;
+        zoom = 1.;
+      }
+      double GetWindowExts(const int i) const { return windowExts[i]; }
+      void Set(const bool ortho,
+               const double camera_p[3], 
+               const double camera_f[3], 
+               const double camera_u[3], 
+               const double fovy, 
+               const double pan_ratio[2],
+               const double zoom_ratio, 
+               const double canvas_size[2],
+               const int screen_size[2],
+               const int tile_extents[4]);
+      void SetScreen(const double xMin, const double xMax,
+                     const double yMin, const double yMax);
+    };
+
 
 
 
@@ -188,5 +222,121 @@ namespace ospray {
 
 /* }; */
 
+/*
+// ****************************************************************************
+//  Struct:  OSPVisItCamera
+//
+//  Purpose:
+//    
+//
+//  Programmer: Qi WU
+//  Creation:   
+//
+// ****************************************************************************
+
+
+// ****************************************************************************
+//  Struct:  OSPVisItRenderer
+//
+//  Purpose:
+//    
+//
+//  Programmer: Qi WU
+//  Creation:   
+//
+// ****************************************************************************
+
+class OSPVisItRenderer
+{
+public:
+    
+    class Light
+    {
+    public:
+	Light() {
+	    initialized = false;
+	    self = NULL;
+	    intensity = 0.5;
+	    color[0] = color[1] = color[2] = 1.;
+	}
+	virtual ~Light() { Delete(); }
+	virtual OSPLight operator*() { return self; }
+	virtual void Delete() { OSPRAY_SAFE_RM(self); }
+	virtual void Init() = 0;
+	virtual void SetIntensity(const double v);
+	virtual void SetColor(const double v[3]);
+    };
+    class AmbientLight : public Light
+    {
+    public:
+        AmbientLight() : Light() {}
+	virtual ~AmbientLight() {}
+	virtual void Init();
+    };
+    class DistantLight : public Light
+    {	
+    public:
+        DistantLight() : Light() {
+	    direction[0] = direction[1] = 0.;
+	    direction[2] = -1.;
+	}
+	virtual ~DistantLight() {}
+	virtual void Init();
+	virtual void SetDirection(const double v[3]);
+    private:
+	double direction[3];
+    };
+    
+    OSPVisItRenderer() {
+	initialized = false;
+	self = NULL;
+	lightData = NULL;
+	aoSamples = 0;
+	spp = ospray::CheckOSPRaySpp();
+	enableOneSidedLighting      = false;
+	enableShadowsEnabled        = false;
+	enableAoTransparencyEnabled = false;
+    }
+    ~OSPVisItRenderer() { Delete(); }
+    OSPRenderer operator*() { return self; }
+    void Delete() {
+	OSPRAY_SAFE_RM(self);
+	OSPRAY_SAFE_RM(lightData);
+    }
+    void Init();
+    void SetAoSamples(const int v) { aoSamples = v; };
+    void SetSpp(const int v) { spp = v; }
+    void SetFlagOneSidedLighting(const bool f) {
+	enableOneSidedLighting = f;
+    }
+    void SetFlagShadowsEnabled(const bool f) {
+	enableShadowsEnabled = f;
+    }
+    void SetFlagAoTransparencyEnabled(const bool f) {
+	enableAoTransparencyEnabled = f;
+    }
+    void SetMaxDepthBuffer(float*, const int, const int);
+    void SetCamera(OSPCamera camera);
+    void SetModel(OSPModel world);
+    void SetLight(const double v[3], const double a, const double d);
+    void Commit();
+    
+private:
+
+    bool initialized;
+    OSPRenderer self;
+    OSPData lightData;
+    AmbientLight              aLight;
+    std::vector<DistantLight> dLights;
+    int aoSamples;
+    int spp;
+    bool enableOneSidedLighting;
+    bool enableShadowsEnabled;
+    bool enableAoTransparencyEnabled;
+    float *maxDepthBuffer;  // depth for the background (shared, never delete)
+    int    maxDepthSize[2]; // buffer extents (minX, maxX, minY, max)  
+
+};
+*/
 };
 };
