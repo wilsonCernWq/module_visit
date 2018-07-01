@@ -26,163 +26,265 @@
 using namespace ospcommon;
 
 namespace ospray {
-  namespace visit {
+namespace visit {
 
-    template<typename T> 
-    void ospray_check(const T& obj, const std::string s) {
-      if (!obj) { 
-        if (CheckVerbose()) {
-          std::cerr << s << " is invalid" << std::endl; 
-        }
-        throw std::runtime_error(s + " is invalid");
+  template<typename T> 
+  void ospray_check(const T& obj, const std::string s) {
+    if (!obj) { 
+      if (CheckVerbose()) {
+        std::cerr << s << " is invalid" << std::endl; 
       }
+      throw std::runtime_error(s + " is invalid");
     }
+  }
 
-    struct Color { float R,G,B,A; };
+  // =======================================================================//
+  //
+  // =======================================================================//
+  struct Color { float R,G,B,A; };
 
-    void TransferFunction::Set(const void *_table,
+  // =======================================================================//
+  //
+  // =======================================================================//
+  TransferFunction::TransferFunction(TransferFunctionCore& other) 
+    : core{&other} {}
+  void TransferFunction::Set(const void *_table,
                              const unsigned int size, 
                              const double datamin, 
                              const double datamax) 
+  {
+    // initialize it once
+    if (!core->init) 
     {
-      // initialize it once
-      if (!init) 
-      {
-        ospray_rm(self);
-        self = ospNewTransferFunction("piecewise_linear");
-        ospray_check(self,"");
-        init = true;
-      }
-      // create OSP data
-      const Color* table = reinterpret_cast<const Color*>(_table);
-      std::vector<vec3f> cdata;
-      std::vector<float> odata;
-      for (unsigned int i = 0; i < size; ++i)
-      {
-        cdata.emplace_back(table[i].R, table[i].G, table[i].B);
-        odata.emplace_back(table[i].A);
-      }
-      OSPData osp_cdata = ospNewData(cdata.size(), OSP_FLOAT3, cdata.data());
-      OSPData osp_odata = ospNewData(odata.size(), OSP_FLOAT,  odata.data());
-      ospray_check(osp_cdata,"TFN color data");
-      ospray_check(osp_odata,"TFN opacity data");
-      // commit
-      ospSetData(self, "colors",    osp_cdata);
-      ospSetData(self, "opacities", osp_odata);
-      ospSet2f(self, "valueRange", datamin, datamax);
-      ospCommit(self);
-      // cleanup
-      ospray_rm(osp_cdata);
-      ospray_rm(osp_odata);
+      ospray_rm(core->self);
+      core->self = ospNewTransferFunction("piecewise_linear");
+      ospray_check(core->self, "transfer function");
+      core->init = true;
     }
+    // create OSP data
+    const Color* table = reinterpret_cast<const Color*>(_table);
+    std::vector<vec3f> cdata;
+    std::vector<float> odata;
+    for (unsigned int i = 0; i < size; ++i)
+    {
+      cdata.emplace_back(table[i].R, table[i].G, table[i].B);
+      odata.emplace_back(table[i].A);
+    }
+    OSPData osp_cdata = ospNewData(cdata.size(), OSP_FLOAT3, cdata.data());
+    OSPData osp_odata = ospNewData(odata.size(), OSP_FLOAT,  odata.data());
+    ospray_check(osp_cdata,"TFN color data");
+    ospray_check(osp_odata,"TFN opacity data");
+    // commit
+    ospSetData(core->self, "colors",    osp_cdata);
+    ospSetData(core->self, "opacities", osp_odata);
+    ospSet2f(core->self, "valueRange", datamin, datamax);
+    ospCommit(core->self);
+    // cleanup
+    ospray_rm(osp_cdata);
+    ospray_rm(osp_odata);
+  }
 
-    void Camera::Set(const bool ortho,
-                     const double camera_p[3], 
-                     const double camera_f[3], 
-                     const double camera_u[3], 
-                     const double fovy,
-                     const double pan_ratio[2],
-                     const double zoom_ratio, 
-                     const double canvas_size[2],
-                     const int screen_size[2], /* overall screen size */
-                     const int tile_extents[4] /*      tile size      */)
+  // =======================================================================//
+  //
+  // =======================================================================//
+  Camera::Camera(CameraCore& other) 
+    : core{&other} {}
+  void Camera::Set(const bool ortho,
+                   const double camera_p[3], 
+                   const double camera_f[3], 
+                   const double camera_u[3], 
+                   const double fovy,
+                   const double pan_ratio[2],
+                   const double zoom_ratio, 
+                   const double canvas_size[2],
+                   const int screen_size[2], /* overall screen size */
+                   const int tile_extents[4] /*      tile size      */)
+  {
+    // create camera
+    if (!core->init || (ortho != core->orthographic))
     {
-      // create camera
-      if (!init || (ortho != orthographic))
-      {
-        orthographic = ortho;
-        ospray_rm(self);
-        self = orthographic ? 
-               ospNewCamera("orthographic") : 
-               ospNewCamera("perspective");
-        ospray_check(self, "camera");
-        init = true;
-      }
-      // compute camera
-      zoom = zoom_ratio;
-      pan[0] = pan_ratio[0] * zoom_ratio;
-      pan[1] = pan_ratio[1] * zoom_ratio;
-      screenSize[0] = screen_size[0];
-      screenSize[1] = screen_size[1];
-      // commit
-      ospSet3f(self, "pos", camera_p[0], camera_p[1], camera_p[2]);
-      ospSet3f(self, "dir", 
-               camera_f[0] - camera_p[0], 
-               camera_f[1] - camera_p[1], 
-               camera_f[2] - camera_p[2]);
-      ospSet3f(self, "up",  camera_u[0], camera_u[1], camera_u[2]);
-      ospSet1f(self, "aspect", 
-               static_cast<double>(screen_size[0]) /
-               static_cast<double>(screen_size[1]));
-      if (!orthographic) ospSet1f(self, "fovy", fovy);      
-      else ospSet1f(self, "height", canvas_size[1]);
-      SetScreen(tile_extents[0], tile_extents[1],
-                tile_extents[2], tile_extents[3]);
+      core->orthographic = ortho;
+      ospray_rm(core->self);
+      core->self = core->orthographic ? 
+        ospNewCamera("orthographic") : 
+        ospNewCamera("perspective");
+      ospray_check(core->self, "camera");
+      core->init = true;
     }
-    void Camera::SetScreen(const double xMin, const double xMax,
-                           const double yMin, const double yMax) 
-    {
-      windowExts[0] = std::max(static_cast<int>(std::round(xMin)), 0);
-      windowExts[1] = std::min(static_cast<int>(std::round(xMax)), 
-                               screenSize[0]);
-      windowExts[2] = std::max(static_cast<int>(std::round(yMin)), 0);
-      windowExts[3] = std::min(static_cast<int>(std::round(yMax)), 
-                               screenSize[1]);
-      const double r_xl = xMin/screenSize[0] - pan[0];
-      const double r_yl = yMin/screenSize[1] - pan[1];
-      const double r_xu = xMax/screenSize[0] - pan[0];
-      const double r_yu = yMax/screenSize[1] - pan[1];	
-      ospSet2f(self, "imageStart", 
-               (r_xl - 0.5) / zoom + 0.5,
-               (r_yl - 0.5) / zoom + 0.5);
-      ospSet2f(self, "imageEnd",   
-               (r_xu - 0.5) / zoom + 0.5,
-               (r_yu - 0.5) / zoom + 0.5);
-      ospCommit(self);
+    // compute camera
+    core->zoom = zoom_ratio;
+    core->pan[0] = pan_ratio[0] * zoom_ratio;
+    core->pan[1] = pan_ratio[1] * zoom_ratio;
+    core->screenSize[0] = screen_size[0];
+    core->screenSize[1] = screen_size[1];
+    // commit
+    ospSet3f(core->self, "pos", 
+             camera_p[0], 
+             camera_p[1], 
+             camera_p[2]);
+    ospSet3f(core->self, "dir", 
+             camera_f[0] - camera_p[0], 
+             camera_f[1] - camera_p[1], 
+             camera_f[2] - camera_p[2]);
+    ospSet3f(core->self, "up",
+             camera_u[0],
+             camera_u[1], 
+             camera_u[2]);
+    ospSet1f(core->self, "aspect", 
+             static_cast<double>(screen_size[0]) /
+             static_cast<double>(screen_size[1]));
+    if (!ortho) ospSet1f(core->self, "fovy", fovy);
+    else ospSet1f(core->self, "height", canvas_size[1]);
+    SetScreen(tile_extents[0], tile_extents[1],
+              tile_extents[2], tile_extents[3]);
+  }
+  void Camera::SetScreen(const double xMin, const double xMax,
+                         const double yMin, const double yMax) 
+  {
+    core->windowExts[0] = std::max(static_cast<int>(std::round(xMin)), 0);
+    core->windowExts[1] = std::min(static_cast<int>(std::round(xMax)), 
+                                   core->screenSize[0]);
+    core->windowExts[2] = std::max(static_cast<int>(std::round(yMin)), 0);
+    core->windowExts[3] = std::min(static_cast<int>(std::round(yMax)), 
+                                   core->screenSize[1]);
+    const double r_xl = xMin/core->screenSize[0] - core->pan[0];
+    const double r_yl = yMin/core->screenSize[1] - core->pan[1];
+    const double r_xu = xMax/core->screenSize[0] - core->pan[0];
+    const double r_yu = yMax/core->screenSize[1] - core->pan[1];	
+    ospSet2f(core->self, "imageStart", 
+             (r_xl - 0.5) / core->zoom + 0.5,
+             (r_yl - 0.5) / core->zoom + 0.5);
+    ospSet2f(core->self, "imageEnd",   
+             (r_xu - 0.5) / core->zoom + 0.5,
+             (r_yu - 0.5) / core->zoom + 0.5);
+    ospCommit(core->self);
+  }
+
+  // =======================================================================//
+  //
+  // =======================================================================//
+  Light::Light(LightCore& other) 
+    : core{&other} {}
+  void Light::Set(const bool ambient, const double i, 
+                  const double c, const double* d)
+  {
+    Set(ambient, i, c, c, c, d);
+  }
+  void Light::Set(const bool ambient, const double i, 
+                  const double cr, const double cg, const double cb,
+                  const double* d)
+  {
+    const double c[3] = {cr, cb, cg};
+    Set(ambient, i, c, d);
+  }
+  void Light::Set(const bool ambient, const double i, 
+                  const double c[3], const double* d)
+  {
+    // create light
+    if (!core->init || ambient != core->isAmbient) {
+      ospray_rm(core->self);
+      core->self = ospNewLight2("scivis", "distant");
+      ospray_check(core->self, "light");
+      ospSet1i(core->self, "isVisible", 0);
+      ospSet1f(core->self, "angularDiameter", 0.53f);
+      core->init = true;
     }
-  };
+    // commit light
+    core->intensity = i;
+    ospSet1f(core->self, "intensity", i);
+    core->color[0] = c[0];
+    core->color[1] = c[1];
+    core->color[2] = c[2];
+    ospSet3f(core->self, "color", c[0], c[1], c[2]);
+    if (!ambient) {
+      core->direction[0] = d[0];
+      core->direction[1] = d[1];
+      core->direction[2] = d[2];
+      ospSet3f(core->self, "direction", d[0], d[1], d[2]);
+    }
+    ospCommit(core->self);
+  }
+
+  // =======================================================================//
+  //
+  // =======================================================================//
+  Renderer::Renderer(RendererCore& other) 
+    : core{&other} {}
+  void Renderer::Init()
+  {
+    if (!core->init) {
+      ospray_rm(core->self);
+      core->self = ospNewRenderer("scivis");
+      ospray_check(core->self, "SCIVIS Renderer");
+      core->init = true;
+    }
+  }
+  void Renderer::ResetLights()
+  {
+    if (!core->init) { Init(); }
+    ospray_rm(core->lightData);
+    core->lightList.clear();
+  }
+  Light Renderer::AddLight()
+  {
+    core->lightList.emplace_back();
+    return Light(core->lightList.back());
+  }
+  void Renderer::FinalizeLights()
+  {
+    std::vector<OSPLight> osp_light_list;
+    for (auto& l : core->lightList) { osp_light_list.emplace_back(*l); }
+    ospray_rm(core->lightData);
+    core->lightData = ospNewData(osp_light_list.size(), OSP_OBJECT, 
+                                 osp_light_list.data());
+    ospray_check(core->lightData, "light list");
+  }
+  void Renderer::SetBackgroundBuffer(const unsigned char* color, 
+                                     const float* depth, 
+                                     const int size[2])
+  {
+    core->bgColorBuffer = color;
+    core->bgDepthBuffer = depth;
+    core->bgSize[0] = size[0];
+    core->bgSize[1] = size[1];
+  }
+  void Renderer::Set(const int ao_samples, const int spp, 
+                     const bool flag_oneSidedLighting,
+                     const bool flag_shadowsEnabled,
+                     const bool flag_aoTransparencyEnabled)
+  {
+    if (!core->init) { Init(); }
+    core->aoSamples = ao_samples;
+    core->spp       = spp;
+    core->enableOneSidedLighting      = flag_oneSidedLighting;
+    core->enableShadowsEnabled        = flag_shadowsEnabled;
+    core->enableAoTransparencyEnabled = flag_aoTransparencyEnabled;
+    ospSet1i(core->self, "aoSamples", ao_samples);
+    ospSet1i(core->self, "spp", spp);
+    ospSet1i(core->self, "oneSidedLighting", flag_oneSidedLighting);
+    ospSet1i(core->self, "shadowsEnabled", flag_shadowsEnabled);
+    ospSet1i(core->self, "aoTransparencyEnabled", flag_aoTransparencyEnabled);
+    ospSetData(core->self, "lights", core->lightData);
+    ospCommit(core->self);
+  }
+  void Renderer::Set(OSPCamera osp_camera)
+  {
+    if (!core->init) { Init(); }
+    ospSetObject(core->self, "camera", osp_camera);
+    ospCommit(core->self);
+  }
+  void Renderer::Set(OSPModel osp_world)
+  {
+    if (!core->init) { Init(); }
+    ospSetObject(core->self, "model", osp_world);
+    ospCommit(core->self);
+  }
+};
 };
 
 
 
 /*
-void OSPVisItPatches::TransferFunction::Init() 
-{
-    if (!initialized) {
-	OSPRAY_SAFE_RM(self);
-	self = ospNewTransferFunction("piecewise_linear");
-	OSPRAY_CHECK(self,"");
-	initialized = true;
-    }
-}
-void OSPVisItPatches::TransferFunction::Set(const OSPVisItPatcheses::Color
-					    *table,
-					    const unsigned int size, 
-					    const float datamin, 
-					    const float datamax) 
-{
-    std::vector<osp::vec3f> cdata;
-    std::vector<float>      odata;
-    for (int i = 0; i < size; ++i)
-    {
-	osp::vec3f color;
-	color.x = table[i].R;
-	color.y = table[i].G;
-	color.z = table[i].B;
-	cdata.push_back(color);
-	odata.push_back(table[i].A);
-    }
-    OSPData cdataOSP = ospNewData(cdata.size(), OSP_FLOAT3, cdata.data());
-    OSPData odataOSP = ospNewData(odata.size(), OSP_FLOAT,  odata.data());
-    OSPRAY_CHECK(cdataOSP,"");
-    OSPRAY_CHECK(odataOSP,"");
-    ospSetData(self, "colors",    cdataOSP);
-    ospSetData(self, "opacities", odataOSP);
-    ospSet2f(self, "valueRange", datamin, datamax);
-    ospCommit(self);
-    ospRelease(cdataOSP);
-    ospRelease(odataOSP);
-}
 
 void 
 OSPVisItPatches::Volume::SetupParameters(const int   voxelEnumVTK,

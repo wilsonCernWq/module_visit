@@ -33,6 +33,7 @@ OSPRAY_CREATE_LIBRARY(ospray_module_visit_common
 
 INSTALL(
   FILES
+  VisItWrapperCore.h
   VisItWrapper.h
   VisItImageComposite.h
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ospray/visit
