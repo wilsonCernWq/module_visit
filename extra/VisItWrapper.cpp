@@ -174,7 +174,7 @@ namespace visit {
                   const double cr, const double cg, const double cb,
                   const double* d)
   {
-    const double c[3] = {cr, cb, cg};
+    const double c[3] = {cr, cg, cb};
     Set(ambient, i, c, d);
   }
   void Light::Set(const bool ambient, const double i, 
