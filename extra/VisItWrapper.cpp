@@ -153,10 +153,10 @@ namespace visit {
     const double r_yl = yMin/core->screenSize[1] - core->pan[1];
     const double r_xu = xMax/core->screenSize[0] - core->pan[0];
     const double r_yu = yMax/core->screenSize[1] - core->pan[1];
-    ospSet2f(core->self, "imageStart", 
+    ospSet2f(core->self, "imageStart",
              (r_xl - 0.5) / core->zoom + 0.5,
              (r_yl - 0.5) / core->zoom + 0.5);
-    ospSet2f(core->self, "imageEnd",   
+    ospSet2f(core->self, "imageEnd",
              (r_xu - 0.5) / core->zoom + 0.5,
              (r_yu - 0.5) / core->zoom + 0.5);
     ospCommit(core->self);
@@ -192,16 +192,9 @@ namespace visit {
       core->init = true;
     }
     // commit light
-    core->intensity = i;
     ospSet1f(core->self, "intensity", i);
-    core->color[0] = c[0];
-    core->color[1] = c[1];
-    core->color[2] = c[2];
     ospSet3f(core->self, "color", c[0], c[1], c[2]);
     if (!ambient) {
-      core->direction[0] = d[0];
-      core->direction[1] = d[1];
-      core->direction[2] = d[2];
       ospSet3f(core->self, "direction", d[0], d[1], d[2]);
     }
     ospCommit(core->self);
@@ -250,22 +243,17 @@ namespace visit {
     core->bgSize[0] = size[0];
     core->bgSize[1] = size[1];
   }
-  void Renderer::Set(const int ao_samples, const int spp, 
-                     const bool flag_oneSidedLighting,
-                     const bool flag_shadowsEnabled,
-                     const bool flag_aoTransparencyEnabled)
+  void Renderer::Set(const int aoSamples, const int spp, 
+                     const bool oneSidedLighting,
+                     const bool shadowsEnabled,
+                     const bool aoTransparencyEnabled)
   {
-    if (!core->init) { Init(); }
-    core->aoSamples = ao_samples;
-    core->spp       = spp;
-    core->enableOneSidedLighting      = flag_oneSidedLighting;
-    core->enableShadowsEnabled        = flag_shadowsEnabled;
-    core->enableAoTransparencyEnabled = flag_aoTransparencyEnabled;
-    ospSet1i(core->self, "aoSamples", ao_samples);
+    if (!core->init) { Init(); }   
+    ospSet1i(core->self, "aoSamples", aoSamples);
     ospSet1i(core->self, "spp", spp);
-    ospSet1i(core->self, "oneSidedLighting", flag_oneSidedLighting);
-    ospSet1i(core->self, "shadowsEnabled", flag_shadowsEnabled);
-    ospSet1i(core->self, "aoTransparencyEnabled", flag_aoTransparencyEnabled);
+    ospSet1i(core->self, "oneSidedLighting", oneSidedLighting);
+    ospSet1i(core->self, "shadowsEnabled", shadowsEnabled);
+    ospSet1i(core->self, "aoTransparencyEnabled", aoTransparencyEnabled);
     ospSetData(core->self, "lights", core->lightData);
     ospCommit(core->self);
   }
@@ -287,359 +275,232 @@ namespace visit {
   // =======================================================================//
   Model::Model(ModelCore& other)
     : core{&other} {}
-    
-};
-};
-
-
-
-/*
-
-void 
-OSPVisItPatches::Volume::SetupParameters(const int   voxelEnumVTK,
-					 const void *voxelDataPtr,
-					 const double *X,
-					 const double *Y,
-					 const double *Z, 
-					 const int    nX,
-					 const int    nY,
-					 const int    nZ,
-					 const double pbox[6],
-					 const double bbox[6])
-{
-    // determine volume data type
-    std::string voxelTypeOSP;
-    std::string voxelEnumOSP;
-    ospout << "[avtOSPRayCommon] current voxel type: ";
-    switch (voxelEnumVTK) {
-    case (VTK_UNSIGNED_CHAR):
-	voxelTypeOSP = "uchar";
-	voxelEnumOSP = OSP_UCHAR;
-	break;
-    case (VTK_SHORT):
-	voxelTypeOSP = "short";
-	voxelEnumOSP = OSP_SHORT;
-	break;
-    case (VTK_UNSIGNED_SHORT):
-	voxelTypeOSP = "ushort";
-	voxelEnumOSP = OSP_USHORT;
-	break;
-    case (VTK_FLOAT):
-	voxelTypeOSP = "float";
-	voxelEnumOSP = OSP_FLOAT;
-	break;
-    case (VTK_DOUBLE):
-	voxelTypeOSP = "double";
-	voxelEnumOSP = OSP_DOUBLE;
-	break;
-    default:
-	ospray::Exception("[avtOSPRayCommon] ERROR: "
-			  "Unsupported voxel type "
-			  + std::to_string(voxelEnumVTK) +
-			  "found.");
+  void Model::Reset()
+  {
+    core->init = false;
+  }
+  void Model::Init()
+  {
+    if (!core->init) {
+      ospray_rm(core->self);
+      core->self = ospNewModel();
+      ospray_check(core->self, "Model");
+      core->init = true;
     }
-    ospout << voxelTypeOSP << std::endl;
+  }
+  void Model::Set(OSPVolume volume)
+  {
+    if (!core->init) { Init(); }
+    ospAddVolume(core->self, volume);
+    ospCommit(core->self);
+  }
 
-    // create volume and model
-    if (true)
+  // =======================================================================//
+  //
+  // =======================================================================//
+  Volume::Volume(VolumeCore& other)
+    : core{&other} {}
+  bool Volume::Init(const std::string volume_type, 
+                    const OSPDataType data_type, const std::string data_char,
+                    const size_t data_size, const void* data_ptr)
+  {
+    if (!core->init || 
+        volume_type != core->volumeType ||
+        data_type   != core->dataType   ||
+        data_size   != core->dataSize   ||
+        data_ptr    != core->dataPtr)
     {
-	OSPRAY_SAFE_RM(model);
-	model = ospNewModel();
-	OSPRAY_CHECK(model, "");   
-	OSPRAY_SAFE_RM(volume);
-	volume = ospNewVolume("visit_shared_structured_volume");
-	OSPRAY_CHECK(volume, "visit_shared_structured_volume");
-	OSPRAY_SAFE_RM(voxels);
-	voxels = ospNewData(nX * nY * nZ, voxelEnumOSP,
-			    voxelDataPtr, OSP_DATA_SHARED_BUFFER);
-	OSPRAY_CHECK(voxels,"");
-	initialized = true;
+      core->volumeType = volume_type;
+      core->dataType = data_type;
+      core->dataSize = data_size;
+      core->dataPtr  = data_ptr;
+      ospray_rm(core->self);
+      core->self = ospNewVolume(volume_type.c_str());
+      ospray_check(core->self, volume_type);
+      if (volume_type == "visit_shared_structured_volume" ||
+          volume_type == "shared_structured_volume") 
+      {
+        OSPData osp_data = ospNewData(data_size, data_type,
+                                      data_ptr, OSP_DATA_SHARED_BUFFER);
+        ospSetString(core->self, "voxelType", data_char.c_str());
+        ospSetData(core->self, "voxelData", osp_data);
+        ospray_rm(osp_data);
+      }
+      core->init = true;
+      return true;
     }
-
-    // commit volume
-    ospSetObject(volume, "transferFunction", *(parent->tfn));
-    ospSetString(volume, "voxelType", voxelTypeOSP.c_str());
-    ospSetData(volume, "voxelData", voxels);
-    ospSet1i(volume, "gradientShadingEnabled", parent->enableShading);
-    ospSet1i(volume, "useGridAccelerator", parent->enableGridAccelerator);
-    ospSet1i(volume, "preIntegration", parent->enablePreIntegration);
-    ospSet1i(volume, "adaptiveSampling", 0);
-    ospSet1i(volume, "singleShade", 0);
-    ospSet1f(volume, "samplingRate", parent->samplingRate);
-    ospSet3f(volume, "Ks", parent->Ks, parent->Ks, parent->Ks);
-    ospSet1f(volume, "Ns", parent->Ns);
-    ospSet3i(volume, "dimensions", nX, nY, nZ);
-    ospSet3f(volume, "gridOrigin",
-	     pbox[0] * parent->scaling[0],
-	     pbox[1] * parent->scaling[1],
-	     pbox[2] * parent->scaling[2]);
-    ospSet3f(volume, "gridSpacing",
-	     parent->scaling[0]*(pbox[3]-pbox[0])/((double)nX-1.),
-	     parent->scaling[1]*(pbox[4]-pbox[1])/((double)nY-1.),
-	     parent->scaling[2]*(pbox[5]-pbox[2])/((double)nZ-1.));
-    ospSet3f(volume, "volumeClippingBoxLower",
-	     bbox[0] * parent->scaling[0],
-	     bbox[1] * parent->scaling[1],
-	     bbox[2] * parent->scaling[2]);
-    ospSet3f(volume, "volumeClippingBoxUpper",
-	     bbox[3] * parent->scaling[0],
-	     bbox[4] * parent->scaling[1],
-	     bbox[5] * parent->scaling[2]);
-    ospSet3f(volume, "volumeGlobalBoundingBoxLower",
-	     scaledGlobalBBoxLower[0],
-	     scaledGlobalBBoxLower[1],
-	     scaledGlobalBBoxLower[2]);
-    ospSet3f(volume, "volumeGlobalBoundingBoxUpper",
-	     scaledGlobalBBoxUpper[0],
-	     scaledGlobalBBoxUpper[1],
-	     scaledGlobalBBoxUpper[2]);
-    ospCommit(volume);
-    ospAddVolume(model, volume);
-    ospCommit(model);
-}
-
-void 
-OSPVisItPatches::Volume::PrepareToRender(OSPRenderer renderer,
-					 const unsigned int W,
-					 const unsigned int H,
-					 const int Xs, const int Ys,
-					 const float* maxDepthBuffer,
-					 const int    maxDepthStride)
-{
-    // create maximum depth texture
-    const osp::vec2i fbSize;
-    fbSize.x = W; fbSize.y = H; pixelnum = W * H;
-    std::vector<float> bgData(pixelnum);
-    for (int i = 0; i < W; ++i) {
-    	for (int j = 0; j < H; ++j) {
-    	    maxDepth[i + j * W] =
-		maxDepthBuffer[Xs + i + (Ys + j) * maxDepthStride];
-    	}
+    return false;
+  }
+  void Volume::Set(const bool useGridAccelerator, const bool adaptiveSampling,
+                   const bool preIntegration, const bool singleShade, 
+                   const bool gradientShadingEnabled, const double samplingRate, 
+                   const double Ks, const double Ns,
+                   const double *X, const double *Y, const double *Z, 
+                   const int nX, const int nY, const int nZ,
+                   const double dbox[6], const double cbox[6], 
+                   const osp::vec3f& global_upper,
+                   const osp::vec3f& global_lower,
+                   const osp::vec3f& scale,
+                   OSPTransferFunction tfn)
+  {
+    const vec3i dims(nX, nY, nZ);
+    const vec3f data_lower(vec3f(dbox[0], dbox[1], dbox[2]) * (const vec3f&)scale);
+    const vec3f data_upper(vec3f(dbox[3], dbox[4], dbox[5]) * (const vec3f&)scale);
+    const vec3f clip_lower(vec3f(cbox[0], cbox[1], cbox[2]) * (const vec3f&)scale);
+    const vec3f clip_upper(vec3f(cbox[3], cbox[4], cbox[5]) * (const vec3f&)scale);
+    const vec3f spacing = (data_upper - data_lower)/((const vec3f)dims - 1.0f);
+    ospSetVec3f(core->self, "volumeGlobalBoundingBoxLower", 
+                (const osp::vec3f&) global_upper);
+    ospSetVec3f(core->self, "volumeGlobalBoundingBoxUpper",
+                (const osp::vec3f&) global_lower);
+    ospSetVec3f(core->self, "volumeClippingBoxLower", (const osp::vec3f&)clip_lower);
+    ospSetVec3f(core->self, "volumeClippingBoxUpper", (const osp::vec3f&)clip_upper);
+    ospSetVec3f(core->self, "gridSpacing", (const osp::vec3f&)spacing);
+    ospSetVec3f(core->self, "gridOrigin",  (const osp::vec3f&)data_lower);
+    ospSetVec3i(core->self, "dimensions",  (const osp::vec3i&)dims);
+    ospSet1f(core->self, "samplingRate", samplingRate);
+    ospSet3f(core->self, "Ks", Ks, Ks, Ks);
+    ospSet1f(core->self, "Ns", Ns);
+    ospSet1i(core->self, "gradientShadingEnabled", (int)gradientShadingEnabled);
+    ospSet1i(core->self, "useGridAccelerator", (int)useGridAccelerator);
+    ospSet1i(core->self, "adaptiveSampling", (int)adaptiveSampling);
+    ospSet1i(core->self, "preIntegration", (int)preIntegration);
+    ospSet1i(core->self, "singleShade", (int)singleShade);
+    ospSetObject(core->self, "transferFunction", tfn);
+    ospCommit(core->self);
+  }  
+  void Volume::ComputeGhostBounds(bool r[6], 
+                                  const unsigned char *g, 
+                                  const int nX, 
+                                  const int nY, 
+                                  const int nZ)
+  {
+    for (int y = 1; y < (nY-1); ++y) {
+      for (int z = 1; z < (nZ-1); ++z) {
+        if (!r[0]) if (g[z*nY*nX+y*nX       ] != 0) r[0] = true;
+        if (!r[3]) if (g[z*nY*nX+y*nX+(nX-1)] != 0) r[3] = true;
+        if (r[0] && r[3]) { break; }
+      }
     }
+    for (int x = 1; x < (nX-1); ++x) {
+      for (int z = 1; z < (nZ-1); ++z) {
+        if (!r[1]) if (g[z*nY*nX          +x] != 0) r[1] = true;
+        if (!r[4]) if (g[z*nY*nX+(nY-1)*nX+x] != 0) r[4] = true;
+        if (r[1] && r[4]) { break; }
+      }
+    }
+    for (int x = 1; x < (nX-1); ++x) {
+      for (int y = 1; y < (nY-1); ++y) {
+        if (!r[2]) if (g[             y*nX+x] != 0) r[2] = true;
+        if (!r[5]) if (g[(nZ-1)*nY*nX+y*nX+x] != 0) r[5] = true; 
+        if (r[2] && r[5]) { break; }
+      }
+    }
+  }
 
-    // create background texture
-    OSPRAY_SAFE_RM(background);
-    background = ospNewTexture2D(fbSize, OSP_TEXTURE_R32F, 
-				 maxDepth.data(),
-				 OSP_TEXTURE_FILTER_NEAREST);
-    OSPRAY_CHECK(background,"");
-    ospCommit(background);
-
-    // create framebuffer
-    ospSetObject(renderer, "maxDepthTexture", background);
-    ospCommit(renderer);
-    OSPRAY_SAFE_RM(background);
-
-    // create framebuffer
-    OSPRAY_SAFE_RM(framebuffer);
-    framebuffer = ospNewFrameBuffer(fbSize, OSP_FB_RGBA32F, OSP_FB_COLOR);
-    OSPRAY_CHECK(framebuffer,"");
-}
-
-void
-OSPVisItPatches::Volume::Render(OSPRenderer renderer, float* output)
-{
-    StackTimer t0("OSPVisItPatches Renders One Patch");
+  // =======================================================================//
+  //
+  // =======================================================================//
+  FrameBuffer::FrameBuffer(FrameBufferCore& other)
+    : core{&other} {}
+  void FrameBuffer::Render(const int tile_w, const int tile_h,
+                           const int tile_x, const int tile_y,
+                           const int global_stride, 
+                           const float* global_depth,
+                           OSPRenderer renderer,
+                           float*& dest)
+  {
+    // ALWAYS create a new framebuffer
+    const vec2i fb_size(tile_w, tile_h);
     {
-	std::cout << "OSPVisItPatches::ospRenderFrame start" << std::endl;
-	ospRenderFrame(framebuffer, renderer, OSP_FB_COLOR);
-	std::cout << "OSPVisItPatches::ospRenderFrame done" << std::endl;
+      ospray_rm(core->self);
+      core->self = ospNewFrameBuffer((const osp::vec2i&)fb_size,
+                                     OSP_FB_RGBA32F, OSP_FB_COLOR);
+      ospray_check(core->self, "framebuffer");
     }
-    float* pixels = (float*) ospMapFrameBuffer(framebuffer, OSP_FB_COLOR);
-    std::copy(pixels, pixels + pixelnum * 4, output);
-    ospUnmapFrameBuffer(pixels, framebuffer);	    
-}
 
-// ****************************************************************************
-//
-// OSPCamera
-//
-// ****************************************************************************
-// ****************************************************************************
-//
-// OSPVisItRenderer
-//
-// ****************************************************************************
-
-void OSPVisItRenderer::Light::SetIntensity(const double v)
-{
-    intensity = v;
-    ospSet1f(self, "intensity", intensity);
-    ospCommit(self);
-}
-
-void OSPVisItRenderer::Light::SetColor(const double v[3])
-{
-    color[0] = v[0];
-    color[1] = v[1];
-    color[2] = v[2];
-    ospSet3f(self, "color", color[0], color[1], color[2]);
-    ospCommit(self);
-}
-
-void OSPVisItRenderer::AmbientLight::Init()
-{
-    if (!initialized) {
-	OSPRAY_SAFE_RM(self);
-	self = ospNewLight2("scivis", "ambient");
-	OSPRAY_CHECK(self,"");
-	ospSet1i(aLight, "isVisible", 0);
-	ospCommit(self);
-	initialized = true;
+    // The reason I use round(r * (N-1)) instead of floor(r * N) is that
+    // during the composition phase, there will be a wired offset between
+    // rendered image and the background, which is about one pixel in size.
+    // Using round(r * (N - 1)) can remove the problem
+    std::vector<float> local_depth(tile_w * tile_h);
+    for (int i = 0; i < tile_w; ++i) {
+      for (int j = 0; j < tile_h; ++j) {
+        local_depth[i + j * tile_w] = 
+          global_depth[tile_x + i + (tile_y + j) * global_stride];
+      }
     }
-}
+    OSPTexture2D maxDepthTexture
+      = ospNewTexture2D((const osp::vec2i&)fb_size, OSP_TEXTURE_R32F,
+                        local_depth.data(), OSP_TEXTURE_FILTER_NEAREST);    
+    ospCommit(maxDepthTexture);
+    ospSetObject(core->self, "maxDepthTexture", maxDepthTexture);
+    ospCommit(core->self);
+    ospray_rm(maxDepthTexture);
 
-void OSPVisItRenderer::DistantLight::Init()
-{
-    if (!initialized) {
-	OSPRAY_SAFE_RM(self);
-	self = ospNewLight2("scivis", "distant");
-	OSPRAY_CHECK(self,"");
-	ospSet1i(aLight, "isVisible", 0);
-	ospSet1f(sLight, "angularDiameter", 0.53f);	    
-	ospCommit(self);
-	initialized = true;
+    // do the rendering
+    ospRenderFrame(core->self, renderer, OSP_FB_COLOR);
+    const float* image = (float*)ospMapFrameBuffer(core->self, OSP_FB_COLOR);
+    std::copy(image, image + (tile_w * tile_h) * 4, dest);
+    ospUnmapFrameBuffer(image, core->self);
+    ospray_rm(core->self);
+  }
+
+  // =======================================================================//
+  //
+  // =======================================================================//
+  Context::Context(ContextCore& other)
+    : core{&other} {}
+  void Context::InitPatch(const int patchID)
+  {
+    if (core->patches.find(patchID) == core->patches.end()) {
+      core->patches[patchID] = patchID;
     }
-}
+  }
+  void Context::SetupPatch(const int patchID,
+                           const OSPDataType data_type, 
+                           const std::string data_char,
+                           const size_t data_size, 
+                           const void* data_ptr,
+                           const double *X, const double *Y, const double *Z, 
+                           const int nX, const int nY, const int nZ,
+                           const double dbox[6], const double cbox[6])
 
-void OSPVisItRenderer::DistantLight::SetDirection(const double v[3])
-{
-    direction[0] = v[0];
-    direction[1] = v[1];
-    direction[2] = v[2];
-    ospSet3f(self, "direction", direction[0], direction[1], direction[2]);
-    ospCommit(self);
-}
-void OSPVisItRenderer::Init() 
-{
-    if (!initialized) {
-	OSPRAY_SAFE_RM(self);
-	self = ospNewRenderer("scivis");
-	OSPRAY_CHECK(self,"scivis rencerer");
-	initialized = true;
+  {
+    Volume volume(core->patches[patchID].volume);
+    Model  model(core->patches[patchID].model);
+    bool reset = volume.Init("visit_shared_structure_volume",
+                             data_type, data_char, data_size, data_ptr);
+    volume.Set(core->useGridAccelerator, core->adaptiveSampling,
+               core->preIntegration, core->singleShade, core->gradientShadingEnabled,
+               core->samplingRate, 
+               core->specularKs, core->specularNs,
+               X, Y, Z, nX, nY, nZ, dbox, cbox,
+               core->bbox.upper,
+               core->bbox.lower,
+               core->scale,
+               *(core->tfn));
+    if (reset) {
+      model.Reset();
+      model.Init();
+      model.Set(*(core->patches[patchID].volume));
     }
-}
-void OSPVisItRenderer::SetMaxDepthBuffer(float* b, const int x, const int y)
-{
-    maxDepthBuffer = b;
-    maxDepthSize[0] = x;
-    maxDepthSize[1] = y;
-}
-void OSPVisItRenderer::SetCamera(OSPCamera camera)
-{
-    ospSetObject(self, "camera", camera);
-}
-void OSPVisItRenderer::SetModel(OSPModel world)
-{
-    ospSetObject(self, "model",  world);
-}
-void OSPVisItRenderer::SetLight(double v[3], const double a, const double d)
-{
-    aLight.SetIntensity(a);
-    dLights.resize(2);
-    dLights[0].SetDirection(v);
-    dLights[0].SetIntensity(d);   /// diffuse light 
-    dLights[1].SetDirection(v);
-    dLights[1].SetIntensity(1.5); // sun light 
-    std::vector<OSPLight> list;
-    list.push_back(*aLight);
-    for (int i = 0; i < dLights.size(); ++i) {
-	list.pusb_back(*(dLights[i]));
-    }
-    OSPRAY_SAFE_RM(lightData);
-    lightData = ospNewData(list.size(), OSP_OBJECT, list.data());
-    OSPRAY_CHECK(lightData);
-    ospSetData(self, "lights", lightData);
-}
-void OSPVisItRenderer::Commit()
-{    
-    ospSet1f(self, "bgColor",   0.f);
-    ospSet1i(self, "aoSamples", aoSamples);
-    ospSet1i(self, "spp",       spp);
-    ospSet1i(self, "oneSidedLighting",      enableOneSidedLighting);
-    ospSet1i(self, "shadowsEnabled",        enableShadowsEnabled);
-    ospSet1i(self, "aoTransparencyEnabled", enableAoTransparencyEnabled);
-    ospCommit(self);
-}
-
-// ****************************************************************************
-//  Struct:  OSPContext
-//
-//  Purpose:
-//
-//
-//  Programmer:  
-//  Creation:   
-//
-// ****************************************************************************
-
-void OSPContext_ErrorFunc(OSPError, const char* msg) { 
-    osperr << "#osp: (rank " << PAR_Rank() << ")" 
-           << msg; 
-}
-void OSPContext_StatusFunc(const char* msg) { 
-    osperr << "#osp: (rank " << PAR_Rank() << ")" 
-           << msg; 
-}
-bool OSPVisItContext::initialized = false;
-void OSPVisItContext::Init(int numThreads) 
-{ 
-    if (!OSPVisItContext::initialized) 
-    {
-	// check hostname
-#ifdef __unix__
-	char hname[200];
-	gethostname(hname, 200);
-        ospout << "[ospray] on host >> " << hname << "<<" << std::endl;;
-#endif
-	// initialize ospray
-        ospout << "[ospray] Initialize OSPRay";
-	OSPDevice device = ospNewDevice();
-	OSPRAY_CHECK(device,"");
-	if (!device)
-	{
-	    osperr << "[avtOSPRayCommon] ERROR: "
-		   << "can't create ospray device"
-		   << std::endl;
-	}
-	// setup debug && number of threads (this can only be hard-coded)
-	if (DebugStream::Level5())
-	{
-	    ospout << " debug mode";
-	    ospDeviceSet1i(device, "debug", 0);
-	}
-	if (numThreads > 0)
-	{
-	    ospout << " numThreads: " << numThreads;
-	    ospDeviceSet1i(device, "numThreads", numThreads);
-	}
-	ospout << std::endl;	
-	ospDeviceSetErrorFunc(device, OSPContext_ErrorFunc);
-	ospDeviceSetStatusFunc(device, OSPContext_StatusFunc);
-	ospDeviceCommit(device);
-	ospSetCurrentDevice(device);
-	// load ospray module
-	OSPError err = ospLoadModule("visit");
-	if (err != OSP_NO_ERROR)
-	{
-	    osperr << "[avtOSPRayCommon] ERROR: "
-		   << "can't load visit module"
-		   << std::endl;
-	}
-    }
-    OSPVisItContext::initialized = true;
-}
-
-// We use this function to minimize interface
-void OSPVisItContext::Render(float xMin, float xMax, float yMin, float yMax,
-			     int imgWidth, int imgHeight,
-			     float*& dest, OSPVisItPatches* volume) 
-{
+  }
+  void Context::RenderPatch(const int patchID,
+                            const float xMin, const float xMax, 
+                            const float yMin, const float yMax,
+                            const int tile_w, const int tile_h,
+                            float*& dest)
+  {
+    Camera camera(core->camera);
+    Renderer renderer(core->renderer);
+    FrameBuffer fb(core->patches[patchID].fb);
     camera.SetScreen(xMin, xMax, yMin, yMax);
-    renderer.SetModel(volume->GetWorld());
-    renderer.SetCamera(camera.camera);
-    volume->InitFB(imgWidth, imgHeight);
-    volume->RenderFB();
-}
-
-*/
+    renderer.Set(*(core->patches[patchID].model));
+    renderer.Set(*(core->camera));
+    fb.Render(tile_w, tile_h,camera.GetWindowExts(0), camera.GetWindowExts(2),
+              core->bgSize.x, core->bgDepth, *(core->renderer), dest);
+  }
+  
+};
+};

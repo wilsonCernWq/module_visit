@@ -17,20 +17,20 @@
 // ======================================================================== //
 // this file will be installed so can expose new functions to the users
 
+// ************************************************************************
+// We expose this in header because iy will be called in other components
+// where we dont have direct library linkage
+// ************************************************************************
+
 #pragma once
 
 #include <ospray/ospray.h>
+#include <string>
 #include <vector>
+#include <map>
 
 namespace ospray {
 namespace visit {
-
-  /**
-   * Shared Variables
-   */
-  struct SharedVariables {
-    
-  };
   
   /** 
    * Helper Functions
@@ -81,15 +81,8 @@ namespace visit {
    */
   struct LightCore : public Object<OSPLight> {
     bool isAmbient;
-    double intensity;
-    double color[3];
-    double direction[3];
     LightCore() : Object<OSPLight>() {
       isAmbient = false;
-      intensity = 1.0;
-      color[0] = color[1] = color[2] = 1.0;
-      direction[0] = direction[1] = 0.0;
-      direction[2] = 1.0;
     }
   };  
 
@@ -99,22 +92,12 @@ namespace visit {
   struct RendererCore : public Object<OSPRenderer> {
     OSPData                lightData;
     std::vector<LightCore> lightList;
-    int  aoSamples;
-    int  spp;
-    bool enableOneSidedLighting;
-    bool enableShadowsEnabled;
-    bool enableAoTransparencyEnabled;
-    // (shared, never delete)
+    // (shared, dont delete here)
     const unsigned char *bgColorBuffer;  // color channel for the backplatte
     const float         *bgDepthBuffer;  // depth channel for the backplatte 
     int bgSize[2]; // buffer extents (minX, maxX, minY, max)  
     RendererCore() : Object<OSPRenderer>() {
       lightData = NULL;
-      aoSamples = 0;
-      spp       = 1;
-      enableOneSidedLighting      = false;
-      enableShadowsEnabled        = false;
-      enableAoTransparencyEnabled = false;
     }
     ~RendererCore() { ospray_rm(lightData); }
   };
@@ -130,8 +113,91 @@ namespace visit {
    * Volume Wrapper
    */
   struct VolumeCore : public Object<OSPVolume> {
-  VolumeCore() : Object<OSPVolume>() {}
+    std::string volumeType;
+    OSPDataType dataType;
+    size_t      dataSize;
+    const void* dataPtr;
+    VolumeCore() : Object<OSPVolume>() {
+      volumeType = "";
+      dataType = OSP_UCHAR; /* just give it a value */
+      dataSize = 0;
+      dataPtr  = NULL;
+    }
   };
   
+  /**
+   * Framebuffer Wrapper
+   */
+  struct FrameBufferCore : public Object<OSPFrameBuffer> {
+    FrameBufferCore() : Object<OSPFrameBuffer>() {}
+  };
+
+  /**
+   * Now we define a PatchCore
+   */
+  struct PatchCore {
+    VolumeCore volume;
+    ModelCore  model;
+    FrameBufferCore fb;
+    int patchID;
+    PatchCore() {
+      patchID = -1;
+    }
+    PatchCore(const int id) {
+      patchID = id;
+    }
+  };
+
+  /**
+   * And a ContextCore
+   */
+  struct ContextCore {
+    CameraCore           camera;
+    RendererCore         renderer;
+    TransferFunctionCore tfn;
+    std::map<int, PatchCore> patches;
+    bool oneSidedLighting;
+    bool shadowsEnabled;
+    bool aoTransparencyEnabled;
+    bool useGridAccelerator;
+    bool adaptiveSampling;
+    bool preIntegration;
+    bool singleShade;
+    bool gradientShadingEnabled;
+    double specularKs;
+    double specularNs;
+    double samplingRate;
+    int aoSamples;
+    int spp;
+    osp::vec3f scale;
+    osp::box3f bbox;
+    osp::vec2i           bgSize;
+    const float*         bgDepth;
+    const unsigned char* bgColor;
+    std::string varname;
+    ContextCore() {
+      oneSidedLighting = false;
+      shadowsEnabled = false;
+      aoTransparencyEnabled = false;
+      useGridAccelerator = false;
+      adaptiveSampling = false;
+      preIntegration = false;
+      singleShade = false;
+      gradientShadingEnabled = false;
+      specularKs = 1.0;
+      specularNs = 20;
+      samplingRate = 3.0;
+      aoSamples = 0;
+      spp = 1;
+      scale.x = scale.y = scale.z = 1.f;
+      bbox.lower.x = bbox.lower.y = bbox.lower.z = 0.f;
+      bbox.upper.x = bbox.upper.y = bbox.upper.z = 0.f;
+      bgSize.x = bgSize.y = 0;
+      bgDepth = NULL;
+      bgColor = NULL;
+      varname = "";
+    }
+  };
+
 };
 };
