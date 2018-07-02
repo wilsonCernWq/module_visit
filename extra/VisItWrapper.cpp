@@ -434,10 +434,9 @@ namespace visit {
       = ospNewTexture2D((const osp::vec2i&)fb_size, OSP_TEXTURE_R32F,
                         local_depth.data(), OSP_TEXTURE_FILTER_NEAREST);    
     ospCommit(maxDepthTexture);
-    ospSetObject(core->self, "maxDepthTexture", maxDepthTexture);
-    ospCommit(core->self);
+    ospSetObject(renderer, "maxDepthTexture", maxDepthTexture);
     ospray_rm(maxDepthTexture);
-
+    
     // do the rendering
     ospRenderFrame(core->self, renderer, OSP_FB_COLOR);
     const float* image = (float*)ospMapFrameBuffer(core->self, OSP_FB_COLOR);
@@ -454,7 +453,7 @@ namespace visit {
   void Context::InitPatch(const int patchID)
   {
     if (core->patches.find(patchID) == core->patches.end()) {
-      core->patches[patchID] = patchID;
+        core->patches[patchID] = PatchCore(patchID);
     }
   }
   void Context::SetupPatch(const int patchID,
@@ -469,10 +468,11 @@ namespace visit {
   {
     Volume volume(core->patches[patchID].volume);
     Model  model(core->patches[patchID].model);
-    bool reset = volume.Init("visit_shared_structure_volume",
+    bool reset = volume.Init("visit_shared_structured_volume",
                              data_type, data_char, data_size, data_ptr);
     volume.Set(core->useGridAccelerator, core->adaptiveSampling,
-               core->preIntegration, core->singleShade, core->gradientShadingEnabled,
+               core->preIntegration, core->singleShade,
+               core->gradientShadingEnabled,
                core->samplingRate, 
                core->specularKs, core->specularNs,
                X, Y, Z, nX, nY, nZ, dbox, cbox,
@@ -498,8 +498,9 @@ namespace visit {
     camera.SetScreen(xMin, xMax, yMin, yMax);
     renderer.Set(*(core->patches[patchID].model));
     renderer.Set(*(core->camera));
-    fb.Render(tile_w, tile_h,camera.GetWindowExts(0), camera.GetWindowExts(2),
-              core->bgSize.x, core->bgDepth, *(core->renderer), dest);
+    fb.Render(tile_w, tile_h, camera.GetWindowExts(0), camera.GetWindowExts(2),
+              core->renderer.bgSize[0], core->renderer.bgDepthBuffer,
+              *(core->renderer), dest);
   }
   
 };

@@ -171,9 +171,6 @@ namespace visit {
     int spp;
     osp::vec3f scale;
     osp::box3f bbox;
-    osp::vec2i           bgSize;
-    const float*         bgDepth;
-    const unsigned char* bgColor;
     std::string varname;
     ContextCore() {
       oneSidedLighting = false;
@@ -192,9 +189,6 @@ namespace visit {
       scale.x = scale.y = scale.z = 1.f;
       bbox.lower.x = bbox.lower.y = bbox.lower.z = 0.f;
       bbox.upper.x = bbox.upper.y = bbox.upper.z = 0.f;
-      bgSize.x = bgSize.y = 0;
-      bgDepth = NULL;
-      bgColor = NULL;
       varname = "";
     }
   };
