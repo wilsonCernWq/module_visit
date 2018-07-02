@@ -95,7 +95,8 @@ namespace visit {
                    const double camera_u[3], 
                    const double fovy,
                    const double pan_ratio[2],
-                   const double zoom_ratio, 
+                   const double zoom_ratio,
+                   const double near_clip,
                    const double canvas_size[2],
                    const int screen_size[2], /* overall screen size */
                    const int tile_extents[4] /*      tile size      */)
@@ -113,11 +114,12 @@ namespace visit {
     }
     // compute camera
     core->zoom = zoom_ratio;
-    core->pan[0] = pan_ratio[0] * zoom_ratio;
-    core->pan[1] = pan_ratio[1] * zoom_ratio;
+    core->pan[0] = pan_ratio[0];
+    core->pan[1] = pan_ratio[1];
     core->screenSize[0] = screen_size[0];
     core->screenSize[1] = screen_size[1];
     // commit
+    ospSet1f(core->self, "nearClip", near_clip);
     ospSet3f(core->self, "pos", 
              camera_p[0], 
              camera_p[1], 
@@ -150,7 +152,7 @@ namespace visit {
     const double r_xl = xMin/core->screenSize[0] - core->pan[0];
     const double r_yl = yMin/core->screenSize[1] - core->pan[1];
     const double r_xu = xMax/core->screenSize[0] - core->pan[0];
-    const double r_yu = yMax/core->screenSize[1] - core->pan[1];	
+    const double r_yu = yMax/core->screenSize[1] - core->pan[1];
     ospSet2f(core->self, "imageStart", 
              (r_xl - 0.5) / core->zoom + 0.5,
              (r_yl - 0.5) / core->zoom + 0.5);

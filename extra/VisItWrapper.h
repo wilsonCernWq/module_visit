@@ -51,7 +51,8 @@ namespace visit {
              const double camera_u[3], 
              const double fovy, 
              const double pan_ratio[2],
-             const double zoom_ratio, 
+             const double zoom_ratio,
+             const double near_clip,
              const double canvas_size[2],
              const int screen_size[2],
              const int tile_extents[4]);
