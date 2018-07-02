@@ -80,7 +80,7 @@ namespace visit {
   /**
    * Renderer Wrapper
    */
-  class Renderer
+  struct Renderer
   {
   protected:
     RendererCore* core;
@@ -101,6 +101,16 @@ namespace visit {
     void Set(OSPModel osp_world);
   };
 
+
+  /**
+   * Model Wrapper
+   */
+  struct Model {
+  protected:
+    ModelCore* core;
+  public:
+    Model(ModelCore& other);
+  };
 
 /*  
     class Volume

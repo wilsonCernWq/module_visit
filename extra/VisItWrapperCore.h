@@ -25,6 +25,13 @@
 namespace ospray {
 namespace visit {
 
+  /**
+   * Shared Variables
+   */
+  struct SharedVariables {
+    
+  };
+  
   /** 
    * Helper Functions
    */
@@ -42,7 +49,7 @@ namespace visit {
     virtual ~Object() { ospray_rm(self); init = false; }
     T operator*() { return self; }
   };
-
+  
   /**
    * Transfer Function Wrapper
    */
@@ -112,6 +119,19 @@ namespace visit {
     ~RendererCore() { ospray_rm(lightData); }
   };
 
+  /**
+   * Model Wrapper
+   */
+  struct ModelCore : public Object<OSPModel> {
+    ModelCore() : Object<OSPModel>() {}
+  };
 
+  /**
+   * Volume Wrapper
+   */
+  struct VolumeCore : public Object<OSPVolume> {
+  VolumeCore() : Object<OSPVolume>() {}
+  };
+  
 };
 };

@@ -281,6 +281,13 @@ namespace visit {
     ospSetObject(core->self, "model", osp_world);
     ospCommit(core->self);
   }
+    
+  // =======================================================================//
+  //
+  // =======================================================================//
+  Model::Model(ModelCore& other)
+    : core{&other} {}
+    
 };
 };
 
