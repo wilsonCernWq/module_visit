@@ -139,23 +139,16 @@ namespace visit {
     VolumeCore volume;
     ModelCore  model;
     FrameBufferCore fb;
-    int patchID;
-    PatchCore() {
-      patchID = -1;
-    }
-    PatchCore(const int id) {
-      patchID = id;
-    }
   };
 
   /**
    * And a ContextCore
    */
   struct ContextCore {
+    std::map<int, PatchCore> patches;    
     CameraCore           camera;
     RendererCore         renderer;
     TransferFunctionCore tfn;
-    std::map<int, PatchCore> patches;
     bool oneSidedLighting;
     bool shadowsEnabled;
     bool aoTransparencyEnabled;

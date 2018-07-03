@@ -25,14 +25,25 @@
 namespace ospray {
 namespace visit {
 
+  template<typename _CoreType, typename _OSPType> struct Manipulator {
+  protected:
+    typedef _CoreType CoreType;
+    typedef _OSPType  OSPType;
+    _CoreType *core;
+  public:
+    Manipulator(_CoreType& other) : core{&other} {}
+    _OSPType   operator* () { return *(*core); }
+    _CoreType* operator->() { return &(*core); }
+  };
+  
   /**
    * Transfer Function Wrapper
    */
-  struct TransferFunction {
-  protected:
-    TransferFunctionCore* core;
+  struct TransferFunction
+    : public Manipulator<TransferFunctionCore, OSPTransferFunction>
+  {
   public:
-    TransferFunction(TransferFunctionCore& other);
+    TransferFunction(CoreType& other);
     void Set(const void *table, const unsigned int size,
              const double datamin, const double datamax);      
   };
@@ -40,9 +51,9 @@ namespace visit {
   /**
    * Camera Wrapper
    */
-  struct Camera {
-  protected:
-    CameraCore* core;
+  struct Camera
+    : public Manipulator<CameraCore, OSPCamera>
+  {
   public:
     Camera(CameraCore& other);
     double GetWindowExts(const int i) const { return core->windowExts[i]; }
@@ -64,9 +75,9 @@ namespace visit {
   /**
    * Light Wrapper
    */
-  struct Light {
-  protected:
-    LightCore* core;
+  struct Light
+    : public Manipulator<LightCore, OSPLight>
+  {
   public:
     Light(LightCore& other);
     void Set(const bool ambient, const double i, 
@@ -82,9 +93,8 @@ namespace visit {
    * Renderer Wrapper
    */
   struct Renderer
+    : public Manipulator<RendererCore, OSPRenderer>
   {
-  protected:
-    RendererCore* core;
   public:
     Renderer(RendererCore& other);
     void Init();
@@ -105,9 +115,9 @@ namespace visit {
   /**
    * Model Wrapper
    */
-  struct Model {
-  protected:
-    ModelCore* core;
+  struct Model
+    : public Manipulator<ModelCore, OSPModel>
+  {
   public:
     Model(ModelCore& other);
     void Reset();
@@ -118,9 +128,9 @@ namespace visit {
   /**
    * Volume Wrapper
    */
-  struct Volume {
-  protected:
-    VolumeCore* core;
+  struct Volume 
+    : public Manipulator<VolumeCore, OSPVolume>
+  {
   public:
     Volume(VolumeCore& other);
     bool Init(const std::string volume_type, 
@@ -147,9 +157,9 @@ namespace visit {
   /**
    * FrameBuffer Wrapper
    */
-  struct FrameBuffer {
-  protected:
-    FrameBufferCore* core;
+  struct FrameBuffer
+    : public Manipulator<FrameBufferCore, OSPFrameBuffer>
+  {
   public:
     FrameBuffer(FrameBufferCore& other);
     void Render(const int tile_w, const int tile_h,

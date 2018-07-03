@@ -46,8 +46,8 @@ namespace visit {
   // =======================================================================//
   //
   // =======================================================================//
-  TransferFunction::TransferFunction(TransferFunctionCore& other) 
-    : core{&other} {}
+  TransferFunction::TransferFunction(TransferFunctionCore& other)
+    : Manipulator<CoreType, OSPType>(other) {}
   void TransferFunction::Set(const void *_table,
                              const unsigned int size, 
                              const double datamin, 
@@ -88,7 +88,7 @@ namespace visit {
   //
   // =======================================================================//
   Camera::Camera(CameraCore& other) 
-    : core{&other} {}
+    : Manipulator<CoreType, OSPType>(other) {}
   void Camera::Set(const bool ortho,
                    const double camera_p[3], 
                    const double camera_f[3], 
@@ -166,7 +166,7 @@ namespace visit {
   //
   // =======================================================================//
   Light::Light(LightCore& other) 
-    : core{&other} {}
+    : Manipulator<CoreType, OSPType>(other) {}
   void Light::Set(const bool ambient, const double i, 
                   const double c, const double* d)
   {
@@ -204,7 +204,7 @@ namespace visit {
   //
   // =======================================================================//
   Renderer::Renderer(RendererCore& other) 
-    : core{&other} {}
+    : Manipulator<CoreType, OSPType>(other) {}
   void Renderer::Init()
   {
     if (!core->init) {
@@ -274,7 +274,7 @@ namespace visit {
   //
   // =======================================================================//
   Model::Model(ModelCore& other)
-    : core{&other} {}
+    : Manipulator<CoreType, OSPType>(other) {}
   void Model::Reset()
   {
     core->init = false;
@@ -299,7 +299,7 @@ namespace visit {
   //
   // =======================================================================//
   Volume::Volume(VolumeCore& other)
-    : core{&other} {}
+    : Manipulator<CoreType, OSPType>(other) {}
   bool Volume::Init(const std::string volume_type, 
                     const OSPDataType data_type, const std::string data_char,
                     const size_t data_size, const void* data_ptr)
@@ -402,47 +402,48 @@ namespace visit {
   //
   // =======================================================================//
   FrameBuffer::FrameBuffer(FrameBufferCore& other)
-    : core{&other} {}
+    : Manipulator<CoreType, OSPType>(other) {}
   void FrameBuffer::Render(const int tile_w, const int tile_h,
                            const int tile_x, const int tile_y,
-                           const int global_stride, 
+                           const int    global_stride, 
                            const float* global_depth,
                            OSPRenderer renderer,
                            float*& dest)
   {
-    // ALWAYS create a new framebuffer
     const vec2i fb_size(tile_w, tile_h);
+    // prepare the maxDepthDexture
+    {
+      // The reason I use round(r * (N-1)) instead of floor(r * N) is that
+      // during the composition phase, there will be a wired offset between
+      // rendered image and the background, which is about one pixel in size.
+      // Using round(r * (N - 1)) can remove the problem
+      std::vector<float> local_depth(tile_w * tile_h);
+      for (int i = 0; i < tile_w; ++i) {
+        for (int j = 0; j < tile_h; ++j) {
+          local_depth[i + j * tile_w] = 
+            global_depth[tile_x + i + (tile_y + j) * global_stride];
+        }
+      }
+      OSPTexture2D maxDepthTexture
+        = ospNewTexture2D((const osp::vec2i&)fb_size, OSP_TEXTURE_R32F,
+                          local_depth.data(), OSP_TEXTURE_FILTER_NEAREST);    
+      ospCommit(maxDepthTexture);
+      ospSetObject(renderer, "maxDepthTexture", maxDepthTexture);
+      ospCommit(renderer);
+      ospray_rm(maxDepthTexture);
+    }    
+    // do the rendering
+    // ALWAYS create a new framebuffer
     {
       ospray_rm(core->self);
-      core->self = ospNewFrameBuffer((const osp::vec2i&)fb_size,
-                                     OSP_FB_RGBA32F, OSP_FB_COLOR);
+      core->self = ospNewFrameBuffer((const osp::vec2i&)fb_size, OSP_FB_RGBA32F, OSP_FB_COLOR);
       ospray_check(core->self, "framebuffer");
+      ospRenderFrame(core->self, renderer, OSP_FB_COLOR);
+      const float* image = (float*)ospMapFrameBuffer(core->self, OSP_FB_COLOR);
+      std::copy(image, image + (tile_w * tile_h) * 4, dest);
+      ospUnmapFrameBuffer(image, core->self);
+      ospray_rm(core->self);      
     }
-
-    // The reason I use round(r * (N-1)) instead of floor(r * N) is that
-    // during the composition phase, there will be a wired offset between
-    // rendered image and the background, which is about one pixel in size.
-    // Using round(r * (N - 1)) can remove the problem
-    std::vector<float> local_depth(tile_w * tile_h);
-    for (int i = 0; i < tile_w; ++i) {
-      for (int j = 0; j < tile_h; ++j) {
-        local_depth[i + j * tile_w] = 
-          global_depth[tile_x + i + (tile_y + j) * global_stride];
-      }
-    }
-    OSPTexture2D maxDepthTexture
-      = ospNewTexture2D((const osp::vec2i&)fb_size, OSP_TEXTURE_R32F,
-                        local_depth.data(), OSP_TEXTURE_FILTER_NEAREST);    
-    ospCommit(maxDepthTexture);
-    ospSetObject(renderer, "maxDepthTexture", maxDepthTexture);
-    ospray_rm(maxDepthTexture);
-    
-    // do the rendering
-    ospRenderFrame(core->self, renderer, OSP_FB_COLOR);
-    const float* image = (float*)ospMapFrameBuffer(core->self, OSP_FB_COLOR);
-    std::copy(image, image + (tile_w * tile_h) * 4, dest);
-    ospUnmapFrameBuffer(image, core->self);
-    ospray_rm(core->self);
   }
 
   // =======================================================================//
@@ -453,7 +454,7 @@ namespace visit {
   void Context::InitPatch(const int patchID)
   {
     if (core->patches.find(patchID) == core->patches.end()) {
-        core->patches[patchID] = PatchCore(patchID);
+        core->patches[patchID] = PatchCore();
     }
   }
   void Context::SetupPatch(const int patchID,
