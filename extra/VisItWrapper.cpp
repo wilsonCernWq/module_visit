@@ -135,8 +135,10 @@ namespace visit {
     ospSet1f(core->self, "aspect", 
              static_cast<double>(screen_size[0]) /
              static_cast<double>(screen_size[1]));
-    if (!ortho) ospSet1f(core->self, "fovy", fovy);
-    else ospSet1f(core->self, "height", canvas_size[1]);
+    if (!ortho)
+        ospSet1f(core->self, "fovy", fovy / core->zoom);
+    else
+        ospSet1f(core->self, "height", canvas_size[1]);
     SetScreen(tile_extents[0], tile_extents[1],
               tile_extents[2], tile_extents[3]);
   }
@@ -153,12 +155,8 @@ namespace visit {
     const double r_yl = yMin/core->screenSize[1] - core->pan[1];
     const double r_xu = xMax/core->screenSize[0] - core->pan[0];
     const double r_yu = yMax/core->screenSize[1] - core->pan[1];
-    ospSet2f(core->self, "imageStart",
-             (r_xl - 0.5) / core->zoom + 0.5,
-             (r_yl - 0.5) / core->zoom + 0.5);
-    ospSet2f(core->self, "imageEnd",
-             (r_xu - 0.5) / core->zoom + 0.5,
-             (r_yu - 0.5) / core->zoom + 0.5);
+    ospSet2f(core->self, "imageStart", r_xl, r_yl);
+    ospSet2f(core->self, "imageEnd",   r_xu, r_yu);
     ospCommit(core->self);
   }
 
