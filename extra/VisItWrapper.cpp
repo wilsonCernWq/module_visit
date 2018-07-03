@@ -234,15 +234,6 @@ namespace visit {
                                  osp_light_list.data());
     ospray_check(core->lightData, "light list");
   }
-  void Renderer::SetBackgroundBuffer(const unsigned char* color, 
-                                     const float* depth, 
-                                     const int size[2])
-  {
-    core->bgColorBuffer = color;
-    core->bgDepthBuffer = depth;
-    core->bgSize[0] = size[0];
-    core->bgSize[1] = size[1];
-  }
   void Renderer::Set(const int aoSamples, const int spp, 
                      const bool oneSidedLighting,
                      const bool shadowsEnabled,
@@ -446,63 +437,6 @@ namespace visit {
     }
   }
 
-  // =======================================================================//
-  //
-  // =======================================================================//
-  Context::Context(ContextCore& other)
-    : core{&other} {}
-  void Context::InitPatch(const int patchID)
-  {
-    if (core->patches.find(patchID) == core->patches.end()) {
-        core->patches[patchID] = PatchCore();
-    }
-  }
-  void Context::SetupPatch(const int patchID,
-                           const OSPDataType data_type, 
-                           const std::string data_char,
-                           const size_t data_size, 
-                           const void* data_ptr,
-                           const double *X, const double *Y, const double *Z, 
-                           const int nX, const int nY, const int nZ,
-                           const double dbox[6], const double cbox[6])
-
-  {
-    Volume volume(core->patches[patchID].volume);
-    Model  model(core->patches[patchID].model);
-    bool reset = volume.Init("visit_shared_structured_volume",
-                             data_type, data_char, data_size, data_ptr);
-    volume.Set(core->useGridAccelerator, core->adaptiveSampling,
-               core->preIntegration, core->singleShade,
-               core->gradientShadingEnabled,
-               core->samplingRate, 
-               core->specularKs, core->specularNs,
-               X, Y, Z, nX, nY, nZ, dbox, cbox,
-               core->bbox.upper,
-               core->bbox.lower,
-               core->scale,
-               *(core->tfn));
-    if (reset) {
-      model.Reset();
-      model.Init();
-      model.Set(*(core->patches[patchID].volume));
-    }
-  }
-  void Context::RenderPatch(const int patchID,
-                            const float xMin, const float xMax, 
-                            const float yMin, const float yMax,
-                            const int tile_w, const int tile_h,
-                            float*& dest)
-  {
-    Camera camera(core->camera);
-    Renderer renderer(core->renderer);
-    FrameBuffer fb(core->patches[patchID].fb);
-    camera.SetScreen(xMin, xMax, yMin, yMax);
-    renderer.Set(*(core->patches[patchID].model));
-    renderer.Set(*(core->camera));
-    fb.Render(tile_w, tile_h, camera.GetWindowExts(0), camera.GetWindowExts(2),
-              core->renderer.bgSize[0], core->renderer.bgDepthBuffer,
-              *(core->renderer), dest);
-  }
   
 };
 };

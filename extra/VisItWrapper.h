@@ -90,42 +90,6 @@ namespace visit {
   };
 
   /**
-   * Renderer Wrapper
-   */
-  struct Renderer
-    : public Manipulator<RendererCore, OSPRenderer>
-  {
-  public:
-    Renderer(RendererCore& other);
-    void Init();
-    void ResetLights();
-    Light AddLight();
-    void FinalizeLights();
-    void SetBackgroundBuffer(const unsigned char * color,
-                             const float* depth, 
-                             const int size[2]);
-    void Set(const int aoSamples, const int spp, 
-             const bool oneSidedLighting,
-             const bool shadowsEnabled,
-             const bool aoTransparencyEnabled);
-    void Set(OSPCamera osp_camera);
-    void Set(OSPModel osp_world);
-  };
-
-  /**
-   * Model Wrapper
-   */
-  struct Model
-    : public Manipulator<ModelCore, OSPModel>
-  {
-  public:
-    Model(ModelCore& other);
-    void Reset();
-    void Init();
-    void Set(OSPVolume);
-  };
-
-  /**
    * Volume Wrapper
    */
   struct Volume 
@@ -147,12 +111,69 @@ namespace visit {
              const osp::vec3f& global_lower,
              const osp::vec3f& scale,
              OSPTransferFunction tfn);
+    void Set(const bool useGridAccelerator, const bool adaptiveSampling,
+             const bool preIntegration, const bool singleShade, 
+             const bool gradientShadingEnabled, const double samplingRate, 
+             const double Ks, const double Ns,
+             const double *X, const double *Y, const double *Z, 
+             const int nX, const int nY, const int nZ,
+             const double dbox[6], const double cbox[6], 
+             const osp::vec3f& global_upper,
+             const osp::vec3f& global_lower,
+             const osp::vec3f& scale,
+             TransferFunction tfn)
+    {
+      Set(useGridAccelerator, adaptiveSampling,
+          preIntegration, singleShade, 
+          gradientShadingEnabled, samplingRate, 
+          Ks, Ns, X, Y, Z, nX, nY, nZ,
+          dbox, cbox, global_upper, global_lower, scale,
+          *tfn);    
+    }
+
     static void ComputeGhostBounds(bool bound[6], 
                                    const unsigned char *ghosts, 
                                    const int gnX, 
                                    const int gnY, 
                                    const int gnZ);
   };
+
+  /**
+   * Model Wrapper
+   */
+  struct Model
+    : public Manipulator<ModelCore, OSPModel>
+  {
+  public:
+    Model(ModelCore& other);
+    void Reset();
+    void Init();
+    void Set(OSPVolume osp_volume);
+    void Set(Volume volume) { Set(*volume); }
+  };
+
+  /**
+   * Renderer Wrapper
+   */
+  struct Renderer
+    : public Manipulator<RendererCore, OSPRenderer>
+  {
+  public:
+    Renderer(RendererCore& other);
+    void  Init();
+    void  ResetLights();
+    Light AddLight();
+    void  FinalizeLights();
+    void  Set(const int aoSamples, const int spp, 
+              const bool oneSidedLighting,
+              const bool shadowsEnabled,
+              const bool aoTransparencyEnabled);
+    void  Set(OSPCamera osp_camera);
+    void  Set(Camera        camera) { Set(*camera); }
+    void  Set(OSPModel   osp_world);
+    void  Set(Model          world) { Set(*world);  }
+  };
+
 
   /**
    * FrameBuffer Wrapper
@@ -168,30 +189,20 @@ namespace visit {
                 const float* global_depth,
                 OSPRenderer renderer,
                 float*& dest);
+    void Render(const int tile_w, const int tile_h,
+                const int tile_x, const int tile_y,
+                const int global_stride, 
+                const float* global_depth,
+                Renderer renderer,
+                float*& dest)
+    {
+        Render(tile_w, tile_h, tile_x, tile_y,
+               global_stride, global_depth,
+               *renderer, dest);
+    }
+
   };
 
-  /**
-   * Context
-   */
-  struct Context {
-  public:
-    ContextCore* core;
-    Context(ContextCore& other);
-    void InitPatch(const int patchID);
-    void SetupPatch(const int patchID,
-                    const OSPDataType data_type, 
-                    const std::string data_char,
-                    const size_t data_size, 
-                    const void* data_ptr,
-                    const double *X, const double *Y, const double *Z, 
-                    const int nX, const int nY, const int nZ,
-                    const double dbox[6], const double cbox[6]);
-    void RenderPatch(const int patchID,
-                     const float xMin, const float xMax, 
-                     const float yMin, const float yMax,
-                     const int tile_w, const int tile_h,
-                     float*& dest); 
-  };
 
 };
 };

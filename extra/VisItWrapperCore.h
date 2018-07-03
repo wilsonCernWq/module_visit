@@ -29,6 +29,8 @@
 #include <vector>
 #include <map>
 
+using std::string;
+
 namespace ospray {
 namespace visit {
   
@@ -38,7 +40,7 @@ namespace visit {
   template<typename T> void ospray_rm(T& obj) {
     if (!obj) { ospRelease(obj); obj = NULL; }
   }
-
+  
   /**
    * Abstraction of an object
    */
@@ -92,10 +94,6 @@ namespace visit {
   struct RendererCore : public Object<OSPRenderer> {
     OSPData                lightData;
     std::vector<LightCore> lightList;
-    // (shared, dont delete here)
-    const unsigned char *bgColorBuffer;  // color channel for the backplatte
-    const float         *bgDepthBuffer;  // depth channel for the backplatte 
-    int bgSize[2]; // buffer extents (minX, maxX, minY, max)  
     RendererCore() : Object<OSPRenderer>() {
       lightData = NULL;
     }
@@ -113,7 +111,7 @@ namespace visit {
    * Volume Wrapper
    */
   struct VolumeCore : public Object<OSPVolume> {
-    std::string volumeType;
+    string      volumeType;
     OSPDataType dataType;
     size_t      dataSize;
     const void* dataPtr;
@@ -135,9 +133,9 @@ namespace visit {
   /**
    * Now we define a PatchCore
    */
-  struct PatchCore {
-    VolumeCore volume;
-    ModelCore  model;
+  struct Patch {
+    VolumeCore      volume;
+    ModelCore       model;
     FrameBufferCore fb;
   };
 
@@ -145,44 +143,51 @@ namespace visit {
    * And a ContextCore
    */
   struct ContextCore {
-    std::map<int, PatchCore> patches;    
+    // data
+    string varname;
+    std::map<int, Patch> patches;
     CameraCore           camera;
     RendererCore         renderer;
     TransferFunctionCore tfn;
-    bool oneSidedLighting;
-    bool shadowsEnabled;
-    bool aoTransparencyEnabled;
-    bool useGridAccelerator;
-    bool adaptiveSampling;
-    bool preIntegration;
-    bool singleShade;
-    bool gradientShadingEnabled;
-    double specularKs;
-    double specularNs;
+    // flags
+    bool oneSidedLighting;       /* renderer */
+    bool shadowsEnabled;         /* renderer */
+    bool aoTransparencyEnabled;  /* renderer */
+    bool useGridAccelerator;     /*  volume  */
+    bool adaptiveSampling;       /*  volume  */
+    bool preIntegration;         /*  volume  */
+    bool singleShade;            /*  volume  */
+    bool gradientShadingEnabled; /*  volume  */
+    // other parameters
+    double Ks;
+    double Ns;
     double samplingRate;
     int aoSamples;
     int spp;
-    osp::vec3f scale;
-    osp::box3f bbox;
-    std::string varname;
+    double scale[3];
+    double gbbox[6];
+    // (shared, dont delete here)
+    const unsigned char *bgColorBuffer;  // color channel for the backplatte
+    const float         *bgDepthBuffer;  // depth channel for the backplatte 
+    int                  bgSize[2];      // channel buffer size
     ContextCore() {
-      oneSidedLighting = false;
-      shadowsEnabled = false;
-      aoTransparencyEnabled = false;
-      useGridAccelerator = false;
-      adaptiveSampling = false;
-      preIntegration = false;
-      singleShade = false;
+      varname = "";
+      oneSidedLighting       = false;
+      shadowsEnabled         = false;
+      aoTransparencyEnabled  = false;
+      useGridAccelerator     = false;
+      adaptiveSampling       = false;
+      preIntegration         = false;
+      singleShade            = false;
       gradientShadingEnabled = false;
-      specularKs = 1.0;
-      specularNs = 20;
+      Ks = 1.0; Ns = 20;
       samplingRate = 3.0;
       aoSamples = 0;
       spp = 1;
-      scale.x = scale.y = scale.z = 1.f;
-      bbox.lower.x = bbox.lower.y = bbox.lower.z = 0.f;
-      bbox.upper.x = bbox.upper.y = bbox.upper.z = 0.f;
-      varname = "";
+      scale[0] = scale[1] = scale[2] = 1.f;
+      gbbox[0] = gbbox[1] = gbbox[2] = 0.f;
+      gbbox[3] = gbbox[4] = gbbox[5] = 0.f;
+      bgSize[0] = bgSize[1] = 0;
     }
   };
 
