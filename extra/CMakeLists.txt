@@ -23,8 +23,8 @@ OSPRAY_CREATE_LIBRARY(ospray_module_visit_common
   VisItImageComposite.ispc
   VisItImageComposite.cpp
   VisItImageComposite.h
-  VisItWrapper.cpp
-  VisItWrapper.h
+  VisItExtraLibraries.cpp
+  VisItExtraLibraries.h
   LINK
   ospray
   ospray_common
@@ -33,8 +33,7 @@ OSPRAY_CREATE_LIBRARY(ospray_module_visit_common
 
 INSTALL(
   FILES
-  VisItWrapperCore.h
-  VisItWrapper.h
+  VisItExtraLibraries.h
   VisItImageComposite.h
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ospray/visit
   )
