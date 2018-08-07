@@ -14,11 +14,8 @@
 ## limitations under the License.                                           ##
 ## ======================================================================== ##
 
-INCLUDE_DIRECTORIES(
-  ${PROJECT_SOURCE_DIR}/ospray
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  )
-
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/ospray)
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 OSPRAY_CREATE_LIBRARY(ospray_module_visit_common
   VisItImageComposite.ispc
   VisItImageComposite.cpp
@@ -29,11 +26,9 @@ OSPRAY_CREATE_LIBRARY(ospray_module_visit_common
   ospray
   ospray_common
   ospray_module_ispc
-  )
-
-INSTALL(
-  FILES
+  EXPORT)
+INSTALL(FILES
   VisItExtraLibraries.h
   VisItImageComposite.h
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ospray/visit
-  )
+  DESTINATION
+  ${CMAKE_INSTALL_INCLUDEDIR}/ospray/visit)

@@ -39,11 +39,9 @@
 #    void ospray_init_module_<moduleName>()
 #
 
-INCLUDE_DIRECTORIES(
-  ${PROJECT_SOURCE_DIR}/ospray
-  ${PROJECT_BINARY_DIR}/ospray
-  ${CMAKE_CURRENT_SOURCE_DIR})
-
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/ospray)
+INCLUDE_DIRECTORIES(${PROJECT_BINARY_DIR}/ospray)
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 OSPRAY_CREATE_LIBRARY(ospray_module_visit
   volume/VisItSharedStructuredVolume.h
   volume/VisItSharedStructuredVolume.cpp
@@ -55,4 +53,4 @@ OSPRAY_CREATE_LIBRARY(ospray_module_visit
   ospray
   ospray_common
   ospray_module_ispc
-  )
+  EXPORT)
