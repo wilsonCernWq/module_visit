@@ -25,8 +25,7 @@ OSPRAY_CREATE_LIBRARY(ospray_module_visit_common
   LINK
   ospray
   ospray_common
-  ospray_module_ispc
-  EXPORT)
+  ospray_module_ispc)
 INSTALL(FILES
   VisItExtraLibraries.h
   VisItImageComposite.h
