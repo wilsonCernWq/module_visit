@@ -39,7 +39,7 @@ namespace ospray {
     // OSPRAY_VERBOSE                                   //
     //                                                  //
     // *************************************************//
-    inline bool InitVerbose() 
+    inline bool InitVerbose(const unsigned int level) 
     { 
       const char* env_verbose = std::getenv("OSPRAY_VERBOSE");
       if (env_verbose) {
@@ -55,10 +55,22 @@ namespace ospray {
       }
       return false;
     }
-    inline bool CheckVerbose() 
+    /* There are 6 levels of debug output
+     * 
+     * level 0 : output in normal mode
+     * level 5 : output everything related to ospray
+     */
+    inline bool CheckVerbose(const unsigned int level = 5)
     { 
-      static bool verbose = InitVerbose();
-      return verbose;       
+      static bool verbose[6] = { 
+        true,
+        InitVerbose(1),
+        InitVerbose(2),
+        InitVerbose(3),
+        InitVerbose(4),
+        InitVerbose(5)
+      };
+      return verbose[level < 6 ? level : 5];
     }
 
   };
